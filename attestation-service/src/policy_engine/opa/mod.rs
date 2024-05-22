@@ -90,12 +90,12 @@ impl PolicyEngine for OPA {
             p: input.as_ptr() as *const c_char,
             n: input.len() as isize,
         };
-
+        log::debug!("AS Evaluate: policy: {:?}, reference: {:?}, input: {:?}", self.policy_dir_path.to_str(), reference, input);
         // Call the function exported by cgo and process the returned decision
         let decision_buf: *mut c_char = unsafe { evaluateGo(policy_go, reference_go, input_go) };
         let decision_str: &CStr = unsafe { CStr::from_ptr(decision_buf) };
         let res = decision_str.to_str()?.to_string();
-        debug!("Evaluated: {}", res);
+        log::info!("AS Evaluated: {}", res);
         if res.starts_with("Error::") {
             return Err(anyhow!(res));
         }

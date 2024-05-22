@@ -21,6 +21,7 @@ use sgx_dcap_quoteverify_rs::{
     tee_qv_get_collateral, tee_supp_data_descriptor_t, tee_verify_quote,
 };
 use sha2::{Digest, Sha384};
+use crate::resource::Repository;
 
 use self::types::sgx_quote3_t;
 
@@ -46,6 +47,7 @@ impl Verifier for SgxVerifier {
         &self,
         nonce: String,
         attestation: &Attestation,
+        _repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
         let tee_evidence = serde_json::from_str::<SgxEvidence>(&attestation.tee_evidence)
             .context("Deserialize Quote failed.")?;

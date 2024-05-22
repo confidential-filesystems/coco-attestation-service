@@ -20,6 +20,7 @@ pub mod rvps;
 mod token;
 mod utils;
 pub mod verifier;
+mod resource;
 
 use crate::token::AttestationTokenBroker;
 
@@ -31,6 +32,7 @@ use policy_engine::PolicyEngine;
 use rvps::{Message, RVPSAPI};
 use serde_json::json;
 use std::collections::HashMap;
+use resource::Repository;
 
 #[cfg(any(feature = "rvps-grpc", feature = "rvps-native"))]
 use std::{fs, str::FromStr};
@@ -45,6 +47,7 @@ pub struct AttestationService {
     policy_engine: Box<dyn PolicyEngine + Send + Sync>,
     rvps: Box<dyn RVPSAPI + Send + Sync>,
     token_broker: Box<dyn AttestationTokenBroker + Send + Sync>,
+    repository: Box<dyn Repository + Send + Sync>,
 }
 
 impl AttestationService {
@@ -67,11 +70,14 @@ impl AttestationService {
             .attestation_token_broker
             .to_token_broker(config.attestation_token_config.clone())?;
 
+        let repository = config.repository_config.initialize()?;
+
         Ok(Self {
             _config: config,
             policy_engine,
             rvps,
             token_broker,
+            repository,
         })
     }
 
@@ -93,11 +99,14 @@ impl AttestationService {
             .attestation_token_broker
             .to_token_broker(config.attestation_token_config.clone())?;
 
+        let repository = config.repository_config.initialize()?;
+
         Ok(Self {
             _config: config,
             policy_engine,
             rvps,
             token_broker,
+            repository,
         })
     }
 
@@ -117,12 +126,13 @@ impl AttestationService {
         let verifier = crate::verifier::to_verifier(&tee)?;
 
         let claims_from_tee_evidence = verifier
-            .evaluate(nonce.to_string(), &attestation)
+            .evaluate(nonce.to_string(), &attestation, &self.repository)
             .await
             .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
 
         let flattened_claims = flatten_claims(tee.clone(), &claims_from_tee_evidence)?;
         let tcb = serde_json::to_string(&flattened_claims)?;
+        info!("TCB : {:?}", tcb);
         let reference_data_map = self
             .get_reference_data(&tcb)
             .await

@@ -33,6 +33,7 @@ impl Verifier for Tdx {
         &self,
         nonce: String,
         attestation: &Attestation,
+        _repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
         let tdx_evidence = serde_json::from_str::<TdxEvidence>(&attestation.tee_evidence)
             .context("Deserialize TDX Evidence failed.")?;

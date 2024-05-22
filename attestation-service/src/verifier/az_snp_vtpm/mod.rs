@@ -17,6 +17,7 @@ use sev::firmware::guest::AttestationReport;
 use sev::firmware::host::TcbVersion;
 use sha2::{Digest, Sha384};
 use std::collections::BTreeMap;
+use crate::resource::Repository;
 
 const HCL_VMPL_VALUE: u32 = 0;
 
@@ -36,6 +37,7 @@ impl Verifier for AzSnpVtpm {
         &self,
         nonce: String,
         attestation: &Attestation,
+        _repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
         let evidence = serde_json::from_str::<Evidence>(&attestation.tee_evidence)
             .context("Failed to deserialize vTPM SEV-SNP evidence")?;

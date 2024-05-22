@@ -42,6 +42,7 @@ impl Verifier for CsvVerifier {
         &self,
         nonce: String,
         attestation: &Attestation,
+        _repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
         let tee_evidence = serde_json::from_str::<CsvEvidence>(&attestation.tee_evidence)
             .context("Deserialize Quote failed.")?;

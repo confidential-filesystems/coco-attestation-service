@@ -22,6 +22,7 @@ impl Verifier for Sample {
         &self,
         nonce: String,
         attestation: &Attestation,
+        _repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
         let tee_evidence = serde_json::from_str::<SampleTeeEvidence>(&attestation.tee_evidence)
             .context("Deserialize Quote failed.")?;

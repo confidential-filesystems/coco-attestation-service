@@ -2,8 +2,11 @@ use anyhow::*;
 use as_types::TeeEvidenceParsedClaim;
 use async_trait::async_trait;
 use kbs_types::{Attestation, Tee};
+use crate::resource::Repository;
 
 pub mod sample;
+
+pub mod challenge;
 
 #[cfg(feature = "az-snp-vtpm-verifier")]
 pub mod az_snp_vtpm;
@@ -22,6 +25,7 @@ pub mod csv;
 
 #[cfg(feature = "cca-verifier")]
 pub mod cca;
+pub mod types;
 
 pub(crate) fn to_verifier(tee: &Tee) -> Result<Box<dyn Verifier + Send + Sync>> {
     match tee {
@@ -83,6 +87,8 @@ pub(crate) fn to_verifier(tee: &Tee) -> Result<Box<dyn Verifier + Send + Sync>> 
                 }
             }
         }
+
+        Tee::Challenge => Ok(Box::<challenge::Challenge>::default() as Box<dyn Verifier + Send + Sync>),
     }
 }
 
@@ -95,5 +101,6 @@ pub trait Verifier {
         &self,
         nonce: String,
         attestation: &Attestation,
+        repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim>;
 }

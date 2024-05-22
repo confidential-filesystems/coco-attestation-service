@@ -39,6 +39,7 @@ impl Verifier for Snp {
         &self,
         nonce: String,
         attestation: &Attestation,
+        _repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
         let tee_evidence = serde_json::from_str::<SnpEvidence>(&attestation.tee_evidence)
             .context("Deserialize Quote failed.")?;

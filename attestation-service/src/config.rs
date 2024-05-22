@@ -7,6 +7,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use crate::rvps::store::StoreType;
+use crate::resource::RepositoryConfig;
 
 /// Environment macro for Attestation Service work dir.
 const AS_WORK_DIR: &str = "AS_WORK_DIR";
@@ -30,6 +31,8 @@ pub struct Config {
 
     /// The Attestation Result Token Broker Config
     pub attestation_token_config: AttestationTokenConfig,
+
+    pub repository_config: RepositoryConfig,
 }
 
 impl Default for Config {
@@ -45,6 +48,7 @@ impl Default for Config {
             rvps_store_type: StoreType::LocalFs,
             attestation_token_broker: AttestationTokenBrokerType::Simple,
             attestation_token_config: AttestationTokenConfig::default(),
+            repository_config: RepositoryConfig::default(),
         }
     }
 }

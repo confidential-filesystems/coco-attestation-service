@@ -59,6 +59,7 @@ impl Verifier for CCA {
         &self,
         nonce: String,
         attestation: &Attestation,
+        _repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
         let evidence = serde_json::from_str::<CcaEvidence>(&attestation.tee_evidence)
             .context("Deserialize CCA Evidence failed.")?;
