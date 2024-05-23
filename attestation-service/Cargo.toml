@@ -38,7 +38,7 @@ jsonwebtoken = "8"
 jwt = { version = "0.16.0", features = ["openssl"]}
 # TODO: change it to "0.5", once released.
 #kbs-types = { git = "https://github.com/virtee/kbs-types", rev = "c90df0e" }
-kbs-types = { path = "../../kbs-types"}
+kbs-types = { path = "../../virtee-kbs-types"}
 lazy_static = "1.4.0"
 log.workspace = true
 openssl = { version = "0.10.55", optional = true }
