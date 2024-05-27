@@ -11,8 +11,8 @@ use std::os::raw::c_char;
 // Link import cgo function
 #[link(name = "cfs")]
 extern "C" {
-    pub fn setResource(path: GoString, data: GoString) -> *mut c_char;
-    pub fn getResource(path: GoString) -> *mut c_char;
+    pub fn setResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
+    pub fn getResource(addr: GoString, typ: GoString, tag: GoString) -> *mut c_char;
 }
 
 /// String structure passed into cgo
@@ -39,12 +39,24 @@ impl Cfs {
 impl Cfs {
     pub async fn set_resource(
         &self,
-        resource_path: String,
+        repository_name: String,
+        resource_type: String,
+        resource_tag: String,
         resource_data: String,
     ) -> Result<bool> {
-        let path_go = GoString {
-            p: resource_path.as_ptr() as *const c_char,
-            n: resource_path.len() as isize,
+        let addr_go = GoString {
+            p: repository_name.as_ptr() as *const c_char,
+            n: repository_name.len() as isize,
+        };
+
+        let typ_go = GoString {
+            p: resource_type.as_ptr() as *const c_char,
+            n: resource_type.len() as isize,
+        };
+
+        let tag_go = GoString {
+            p: resource_tag.as_ptr() as *const c_char,
+            n: resource_tag.len() as isize,
         };
 
         let data_go = GoString {
@@ -52,11 +64,11 @@ impl Cfs {
             n: resource_data.len() as isize,
         };
 
-        log::debug!("confilesystem - set_resource(): resource_path: {:?}, resource_data: {:?}",
-            resource_path, resource_data);
+        log::debug!("confilesystem - set_resource(): addr_go: {:?}, typ_go: {:?}, tag_go: {:?}",
+            addr_go, typ_go, tag_go);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { setResource(path_go, data_go) };
+            unsafe { setResource(addr_go, typ_go, tag_go, data_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - set_resource(): res = {:?}", res);
@@ -74,17 +86,30 @@ impl Cfs {
 
     pub async fn get_resource(
         &self,
-        resource_path: String
+        repository_name: String,
+        resource_type: String,
+        resource_tag: String,
     ) -> Result<(bool, String)> {
-        let path_go = GoString {
-            p: resource_path.as_ptr() as *const c_char,
-            n: resource_path.len() as isize,
+        let addr_go = GoString {
+            p: repository_name.as_ptr() as *const c_char,
+            n: repository_name.len() as isize,
         };
 
-        log::debug!("confilesystem - get_resource(): resource_path: {:?}", resource_path);
+        let typ_go = GoString {
+            p: resource_type.as_ptr() as *const c_char,
+            n: resource_type.len() as isize,
+        };
+
+        let tag_go = GoString {
+            p: resource_tag.as_ptr() as *const c_char,
+            n: resource_tag.len() as isize,
+        };
+
+        log::debug!("confilesystem - get_resource(): addr_go: {:?}, typ_go: {:?}, tag_go: {:?}",
+            addr_go, typ_go, tag_go);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { getResource(path_go) };
+            unsafe { getResource(addr_go, typ_go, tag_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - get_resource(): res = {:?}", res);
