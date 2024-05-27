@@ -22,6 +22,8 @@ mod utils;
 pub mod verifier;
 mod resource;
 
+pub mod cfs;
+
 use crate::token::AttestationTokenBroker;
 
 use anyhow::{anyhow, Context, Result};
