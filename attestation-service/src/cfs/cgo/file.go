@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/confidential-filesystems/filesystem-toolchain/cert"
 	"github.com/confidential-filesystems/filesystem-toolchain/cmd/common"
@@ -32,17 +33,28 @@ func (f *File) SetResource(addr, typ, tag string, data []byte) error {
 	fmt.Printf("confilesystem-go - File.SetResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
 
-	return nil
+	resourcePath := path.Join(defaultRepoDir, addr, typ, tag)
+	fmt.Printf("confilesystem-go - File.GetResource(): resourcePath = %v\n", resourcePath)
+	err := os.MkdirAll(getDir(resourcePath), os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(resourcePath, data, 0644)
+	return err
 }
 
 func (f *File) GetResource(addr, typ, tag string) ([]byte, error) {
 	fmt.Printf("confilesystem-go - File.GetResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
 
-	return nil, nil
+	return toGetResource(defaultRepoDir, addr, typ, tag)
 }
 
 // utils api
+func getDir(path string) string {
+	return path[:len(path)-len(filepath.Base(path))]
+}
+
 func toGetResource(repoDir, addr, typ, tag string) ([]byte, error) {
 	if eCommon.IsHexAddress(addr) {
 		seeds, err := os.ReadFile(path.Join(repoDir, fmt.Sprintf(resource.ResSeeds, addr)))

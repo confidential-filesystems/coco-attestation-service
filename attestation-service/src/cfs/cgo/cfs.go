@@ -4,7 +4,10 @@ import "C"
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+
+	"github.com/confidential-filesystems/filesystem-toolchain/resource"
 )
 
 var (
@@ -59,7 +62,31 @@ func getResource(addr, typ, tag string) *C.char {
 
 	resMap := make(map[string]interface{})
 	resMap["ok"] = true
-	resMap["data"] = "get-resource-return-data: " + string(data)
+	resMap["data"] = string(data)
+
+	res, err := json.Marshal(resMap)
+	if err != nil {
+		return cgoError(err)
+	}
+
+	return C.CString(string(res))
+}
+
+//export verifySeeds
+func verifySeeds(seeds string) *C.char {
+	if seeds == "" {
+		return cgoError(errors.New("seeds is empty"))
+	}
+	kl, err := resource.NewKeyLoad(seeds)
+	if err != nil {
+		return cgoError(err)
+	}
+	if !kl.Valid() {
+		return cgoError(errors.New("seeds is invalid"))
+	}
+
+	resMap := make(map[string]interface{})
+	resMap["ok"] = true
 
 	res, err := json.Marshal(resMap)
 	if err != nil {

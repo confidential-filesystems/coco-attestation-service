@@ -152,7 +152,7 @@ async fn verify_tee_evidence(
                 return Err(anyhow!("Unsupported attestation report: {}", att_report.attester ));
             }
             // verify crp_token
-            return verify_crpt(crp_token, repository)
+            return verify_crpt(crp_token, repository).await
         }
         None => {
             // should be controller it's self, already checked

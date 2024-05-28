@@ -69,7 +69,7 @@ pub fn parse_crptpayload(crp_token: &String) -> Result<CRPTPayload> {
     }
 }
 
-pub fn verify_crpt(crp_token: &String, repository: &Box<dyn Repository + Send + Sync>) -> Result<CRPTPayload> {
+pub async fn verify_crpt(crp_token: &String, repository: &Box<dyn Repository + Send + Sync>) -> Result<CRPTPayload> {
     let metadata = Token::decode_metadata(crp_token.as_ref()).map_err(|_| anyhow!("Invalid crp_token!"))?;
     let kid = metadata.key_id().ok_or(anyhow!("Invalid crp_token! No kid"))?;
     info!("ccdata - crp_token: kid = {:?}", kid);
@@ -117,6 +117,7 @@ pub fn verify_crpt(crp_token: &String, repository: &Box<dyn Repository + Send + 
         resource_tag: parts[2].to_string(),
     };
     let pub_key_pem_bytes = repository.read_secret_resource(resource_description)
+        .await
         .map_err(|e| anyhow!("Failed to read user {}'s public key: {}", user_addr, e))?;
     let pub_key_pem = std::str::from_utf8(&pub_key_pem_bytes).map_err(|_| anyhow!("Invalid user's public key"))?;
     let public_key = ES256PublicKey::from_pem(pub_key_pem).map_err(|_| anyhow!("Invalid user's public key"))?;

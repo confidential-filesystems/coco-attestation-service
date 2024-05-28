@@ -27,11 +27,20 @@ impl Default for LocalFsRepoDesc {
 
 pub struct LocalFs {
     pub repo_dir_path: String,
+    pub cfsi: crate::cfs::Cfs,
 }
 
 #[async_trait::async_trait]
 impl Repository for LocalFs {
-    fn read_secret_resource(&self, resource_desc: ResourceDesc) -> Result<Vec<u8>> {
+    async fn read_secret_resource(&self, resource_desc: ResourceDesc) -> Result<Vec<u8>> {
+        let get_res = self.cfsi.get_resource(resource_desc.repository_name.clone(),
+                                             resource_desc.resource_type.clone(),
+                                             resource_desc.resource_tag.clone())
+            .await?;
+        info!("confilesystem - cfsi.get_resource() -> get_res = {:?}", get_res);
+        Ok(get_res)
+
+        /*
         let _resource_path = PathBuf::from(&self.repo_dir_path);
 
         let ref_resource_path = format!(
@@ -58,6 +67,7 @@ impl Repository for LocalFs {
                                       format!("fail to read {}", ref_resource_path),).into());
         }
         Ok(buffer)
+        */
         /*
         resource_path.push(ref_resource_path);
 
@@ -76,6 +86,7 @@ impl LocalFs {
                 .dir_path
                 .clone()
                 .unwrap_or(DEFAULT_REPO_DIR_PATH.to_string()),
+            cfsi: crate::cfs::Cfs::new("".to_string())?,
         })
     }
 }
