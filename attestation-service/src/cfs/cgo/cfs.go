@@ -39,7 +39,7 @@ func setResource(addr, typ, tag string, data string) *C.char {
 	}
 
 	resMap := make(map[string]interface{})
-	resMap["ok"] = true
+	resMap[ResMapKeyOk] = true
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
@@ -61,8 +61,8 @@ func getResource(addr, typ, tag string) *C.char {
 	}
 
 	resMap := make(map[string]interface{})
-	resMap["ok"] = true
-	resMap["data"] = string(data)
+	resMap[ResMapKeyOk] = true
+	resMap[ResMapKeyData] = string(data)
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
@@ -86,7 +86,7 @@ func verifySeeds(seeds string) *C.char {
 	}
 
 	resMap := make(map[string]interface{})
-	resMap["ok"] = true
+	resMap[ResMapKeyOk] = true
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
@@ -94,11 +94,6 @@ func verifySeeds(seeds string) *C.char {
 	}
 
 	return C.CString(string(res))
-}
-
-// util apis
-func cgoError(err error) *C.char {
-	return C.CString("Error:: " + err.Error())
 }
 
 // main

@@ -4,6 +4,7 @@ go 1.21.7
 
 require (
 	github.com/confidential-filesystems/filesystem-toolchain v0.0.1
+	github.com/confidential-filesystems/filesystem-ownership v0.0.1
 	github.com/ethereum/go-ethereum v1.10.4
 	github.com/sigstore/sigstore v1.8.1
 )
@@ -36,4 +37,5 @@ require (
 replace (
 	confidentialfilesystems.com/cc/keyprovider => ../../../../../filesystem-toolchain/image/keyprovider
 	github.com/confidential-filesystems/filesystem-toolchain => ../../../../../filesystem-toolchain
+	github.com/confidential-filesystems/filesystem-ownership => ../../../../../filesystem-ownership
 )

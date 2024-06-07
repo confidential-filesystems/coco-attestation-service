@@ -40,9 +40,11 @@ fn real_main() -> Result<(), String> {
                 "-o",
                 &format!("{out_dir}/libcfs.so"),
                 "-buildmode=c-shared", // "-buildmode=c-archive",
-                "cfs.go",
+                "util.go",
+                "ownership.go",
                 "resource.go",
                 "file.go",
+                "cfs.go",
             ])
             .current_dir(cgo_dir)
             .output()
