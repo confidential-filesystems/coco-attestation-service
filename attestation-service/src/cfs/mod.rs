@@ -7,13 +7,22 @@ use anyhow::{anyhow, Result};
 use serde_json::Value;
 use std::ffi::CStr;
 use std::os::raw::c_char;
+use kbs_types::TeePubKey;
+use serde::{Serialize, Deserialize};
+use crate::rvps::store::StoreType;
 
 // Link import cgo function
 #[link(name = "cfs")]
 extern "C" {
+    // <-> kms,ca
+    pub fn initKMS(storage_type: GoString) -> *mut c_char;
     pub fn setResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
     pub fn getResource(addr: GoString, typ: GoString, tag: GoString) -> *mut c_char;
     pub fn verifySeeds(seeds: GoString) -> *mut c_char;
+
+    // <-> ownership
+    pub fn initOwnership(cfg_file: GoString, ctx_timeout_sec: i64) -> *mut c_char;
+    pub fn mintFilesystem(req: GoString) -> *mut c_char;
 }
 
 /// String structure passed into cgo
@@ -24,6 +33,40 @@ pub struct GoString {
     pub n: isize,
 }
 
+// rust to go struct
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MetaTxForwardRequest {
+    #[serde(rename = "from")]
+    pub from: String,
+    #[serde(rename = "to")]
+    pub to: String,
+    #[serde(rename = "value")]
+    pub value: String,
+    #[serde(rename = "gas")]
+    pub gas: String,
+    #[serde(rename = "nonce")]
+    pub nonce: String,
+    #[serde(rename = "deadline")]
+    pub deadline: u64,
+    #[serde(rename = "data")]
+    pub data: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MintFilesystemReq {
+    #[serde(rename = "metaTxRequest")]
+    pub meta_tx_request: MetaTxForwardRequest,
+    #[serde(rename = "metaTxSignature")]
+    pub meta_tx_signature: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MintFilesystemResp {
+    #[serde(rename = "token_id")]
+    pub token_id: String,
+}
+
+// cfs
 #[derive(Debug, Clone)]
 pub struct Cfs {
     info: String,
@@ -38,6 +81,66 @@ impl Cfs {
 
 // #[async_trait]
 impl Cfs {
+    // init cfs
+    pub fn init_cfs(
+        kms_store_type: String,
+        ownership_cfg_file: String, ownership_ctx_timeout_sec: i64
+    ) -> Result<()> {
+        // init kms
+        let kms_store_type_go = GoString {
+            p: kms_store_type.as_ptr() as *const c_char,
+            n: kms_store_type.len() as isize,
+        };
+
+        log::debug!("confilesystem - init_cfs() - initKMS(): kms_store_type: {:?}", kms_store_type);
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { initKMS(kms_store_type_go) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - init_cfs() - initKMS(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+
+        // init ownershio
+        let ownership_cfg_file_go = GoString {
+            p: ownership_cfg_file.as_ptr() as *const c_char,
+            n: ownership_cfg_file.len() as isize,
+        };
+
+        log::debug!("confilesystem - init_cfs() - initOwnership(): ownership_cfg_file: {:?}, ownership_ctx_timeout_sec: {:?}",
+            ownership_cfg_file, ownership_ctx_timeout_sec);
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { initOwnership(ownership_cfg_file_go, ownership_ctx_timeout_sec) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - init_cfs() - initOwnership(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+
+        Ok(())
+    }
+
+    // <-> kms,ca
     pub async fn set_resource(
         &self,
         repository_name: String,
@@ -164,6 +267,51 @@ impl Cfs {
         }
         Ok(())
     }
+
+    // <-> ownership
+    pub async fn mint_filesystem(
+        &self,
+        req: &MintFilesystemReq,
+    ) -> Result<MintFilesystemResp> {
+        let req_string = match serde_json::to_string(req) {
+            Ok(req_string) => {
+                req_string
+            },
+            Err(e) => {
+                anyhow::bail!(e);
+            }
+        };
+
+        let req_string_go = GoString {
+            p: req_string.as_ptr() as *const c_char,
+            n: req_string.len() as isize,
+        };
+
+        log::debug!("confilesystem - mint_filesystem(): req: {:?}", req);
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { mintFilesystem(req_string_go) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - mint_filesystem(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+        let result_data = res_kv["data"]
+            .to_string();
+        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+
+        let rsp = serde_json::from_str::<MintFilesystemResp>(&result_data)?;
+        Ok(rsp)
+    }
 }
 
 #[cfg(test)]
@@ -179,4 +327,6 @@ mod tests {
     async fn test_get_policy() {
 
     }
+
+    //...
 }

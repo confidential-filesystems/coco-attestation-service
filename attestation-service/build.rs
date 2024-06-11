@@ -44,6 +44,7 @@ fn real_main() -> Result<(), String> {
                 "ownership.go",
                 "resource.go",
                 "file.go",
+                "kms.go",
                 "cfs.go",
             ])
             .current_dir(cgo_dir)
