@@ -23,6 +23,10 @@ extern "C" {
     // <-> ownership
     pub fn initOwnership(cfg_file: GoString, ctx_timeout_sec: i64) -> *mut c_char;
     pub fn mintFilesystem(req: GoString) -> *mut c_char;
+    pub fn getFilesystem(name: GoString) -> *mut c_char;
+    pub fn burnFilesystem(req: GoString) -> *mut c_char;
+    pub fn getAccountMetaTx(addr: GoString) -> *mut c_char;
+    pub fn getWellKnownCfg() -> *mut c_char;
 }
 
 /// String structure passed into cgo
@@ -66,6 +70,50 @@ pub struct MintFilesystemResp {
     pub token_id: String,
 }
 
+pub type BurnFilesystemReq = MintFilesystemReq;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetFilesystemResp {
+    #[serde(rename = "filesystem_name")]
+    pub filesystem_name: String,
+    #[serde(rename = "owner_address")]
+    pub owner_address: String,
+    #[serde(rename = "token_id")]
+    pub token_id: String,
+    #[serde(rename = "token_uri")]
+    pub token_uri: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetMetaTxParamsResp {
+    #[serde(rename = "chain_id")]
+    pub chain_id: u64,
+    #[serde(rename = "chain_number")]
+    pub chain_number: u64,
+    #[serde(rename = "eip712_name")]
+    pub eip712_name: String,
+    #[serde(rename = "eip712_version")]
+    pub eip712_version: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Contracts {
+    #[serde(rename = "forwarder")]
+    pub forwarder: String,
+    #[serde(rename = "filesystem")]
+    pub filesystem: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetConfigureResp {
+    #[serde(rename = "configure")]
+    pub configure: GetMetaTxParamsResp,
+    #[serde(rename = "contracts")]
+    pub contracts: Contracts,
+    #[serde(rename = "nonce")]
+    pub nonce: u64,
+}
+
 // cfs
 #[derive(Debug, Clone)]
 pub struct Cfs {
@@ -87,12 +135,12 @@ impl Cfs {
         ownership_cfg_file: String, ownership_ctx_timeout_sec: i64
     ) -> Result<()> {
         // init kms
+        log::debug!("confilesystem - init_cfs() - initKMS(): kms_store_type: {:?}", kms_store_type);
         let kms_store_type_go = GoString {
             p: kms_store_type.as_ptr() as *const c_char,
             n: kms_store_type.len() as isize,
         };
 
-        log::debug!("confilesystem - init_cfs() - initKMS(): kms_store_type: {:?}", kms_store_type);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
             unsafe { initKMS(kms_store_type_go) };
@@ -112,13 +160,13 @@ impl Cfs {
         }
 
         // init ownershio
+        log::debug!("confilesystem - init_cfs() - initOwnership(): ownership_cfg_file: {:?}, ownership_ctx_timeout_sec: {:?}",
+            ownership_cfg_file, ownership_ctx_timeout_sec);
         let ownership_cfg_file_go = GoString {
             p: ownership_cfg_file.as_ptr() as *const c_char,
             n: ownership_cfg_file.len() as isize,
         };
 
-        log::debug!("confilesystem - init_cfs() - initOwnership(): ownership_cfg_file: {:?}, ownership_ctx_timeout_sec: {:?}",
-            ownership_cfg_file, ownership_ctx_timeout_sec);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
             unsafe { initOwnership(ownership_cfg_file_go, ownership_ctx_timeout_sec) };
@@ -148,6 +196,9 @@ impl Cfs {
         resource_tag: String,
         resource_data: &[u8],
     ) -> Result<()> {
+        log::debug!("confilesystem - set_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
+            repository_name, resource_type, resource_tag);
+
         let addr_go = GoString {
             p: repository_name.as_ptr() as *const c_char,
             n: repository_name.len() as isize,
@@ -168,8 +219,6 @@ impl Cfs {
             n: resource_data.len() as isize,
         };
 
-        log::debug!("confilesystem - set_resource(): addr_go: {:?}, typ_go: {:?}, tag_go: {:?}",
-            addr_go, typ_go, tag_go);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
             unsafe { setResource(addr_go, typ_go, tag_go, data_go) };
@@ -196,6 +245,9 @@ impl Cfs {
         resource_type: String,
         resource_tag: String,
     ) -> Result<Vec<u8>> {
+        log::debug!("confilesystem - get_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
+            repository_name, resource_type, resource_tag);
+
         let addr_go = GoString {
             p: repository_name.as_ptr() as *const c_char,
             n: repository_name.len() as isize,
@@ -211,8 +263,6 @@ impl Cfs {
             n: resource_tag.len() as isize,
         };
 
-        log::debug!("confilesystem - get_resource(): addr_go: {:?}, typ_go: {:?}, tag_go: {:?}",
-            addr_go, typ_go, tag_go);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
             unsafe { getResource(addr_go, typ_go, tag_go) };
@@ -242,12 +292,13 @@ impl Cfs {
         &self,
         seeds: String,
     ) -> Result<()> {
+        log::debug!("confilesystem - verify_seeds(): seeds: {:?}", seeds);
+
         let seeds_go = GoString {
             p: seeds.as_ptr() as *const c_char,
             n: seeds.len() as isize,
         };
 
-        log::debug!("confilesystem - verify_seeds(): seeds_go: {:?}", seeds_go);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
             unsafe { verifySeeds(seeds_go) };
@@ -273,6 +324,8 @@ impl Cfs {
         &self,
         req: &MintFilesystemReq,
     ) -> Result<MintFilesystemResp> {
+        log::debug!("confilesystem - mint_filesystem(): req: {:?}", req);
+
         let req_string = match serde_json::to_string(req) {
             Ok(req_string) => {
                 req_string
@@ -287,7 +340,6 @@ impl Cfs {
             n: req_string.len() as isize,
         };
 
-        log::debug!("confilesystem - mint_filesystem(): req: {:?}", req);
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
             unsafe { mintFilesystem(req_string_go) };
@@ -310,6 +362,149 @@ impl Cfs {
         //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
 
         let rsp = serde_json::from_str::<MintFilesystemResp>(&result_data)?;
+        Ok(rsp)
+    }
+
+    pub async fn get_filesystem(
+        &self,
+        name: &str,
+    ) -> Result<GetFilesystemResp> {
+        log::debug!("confilesystem - get_filesystem(): name: {:?}", name);
+
+        let name_go = GoString {
+            p: name.as_ptr() as *const c_char,
+            n: name.len() as isize,
+        };
+
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { getFilesystem(name_go) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - get_filesystem(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+        let result_data = res_kv["data"]
+            .to_string();
+        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+
+        let rsp = serde_json::from_str::<GetFilesystemResp>(&result_data)?;
+        Ok(rsp)
+    }
+
+    pub async fn burn_filesystem(
+        &self,
+        req: &BurnFilesystemReq,
+    ) -> Result<()> {
+        log::debug!("confilesystem - burn_filesystem(): req: {:?}", req);
+
+        let req_string = match serde_json::to_string(req) {
+            Ok(req_string) => {
+                req_string
+            },
+            Err(e) => {
+                anyhow::bail!(e);
+            }
+        };
+
+        let req_string_go = GoString {
+            p: req_string.as_ptr() as *const c_char,
+            n: req_string.len() as isize,
+        };
+
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { burnFilesystem(req_string_go) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - burn_filesystem(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_account_metatx(
+        &self,
+        addr: &str,
+    ) -> Result<GetMetaTxParamsResp> {
+        log::debug!("confilesystem - get_account_metatx(): addr: {:?}", addr);
+
+        let addr_go = GoString {
+            p: addr.as_ptr() as *const c_char,
+            n: addr.len() as isize,
+        };
+
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { getAccountMetaTx(addr_go) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - get_account_metatx(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+        let result_data = res_kv["data"]
+            .to_string();
+        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+
+        let rsp = serde_json::from_str::<GetMetaTxParamsResp>(&result_data)?;
+        Ok(rsp)
+    }
+
+    pub async fn get_wellknown(
+        &self,
+    ) -> Result<GetConfigureResp> {
+        log::debug!("confilesystem - get_wellknown():");
+
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { getWellKnownCfg() };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - get_wellknown(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+        let result_data = res_kv["data"]
+            .to_string();
+        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+
+        let rsp = serde_json::from_str::<GetConfigureResp>(&result_data)?;
         Ok(rsp)
     }
 }
