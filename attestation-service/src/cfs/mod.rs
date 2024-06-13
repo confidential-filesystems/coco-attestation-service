@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 //use async_trait::async_trait;
 use serde_json::Value;
 use std::ffi::CStr;
@@ -85,7 +85,7 @@ pub struct GetFilesystemResp {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct GetMetaTxParamsResp {
+pub struct GetConfigureResp {
     #[serde(rename = "chain_id")]
     pub chain_id: u64,
     #[serde(rename = "chain_number")]
@@ -105,9 +105,9 @@ pub struct Contracts {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct GetConfigureResp {
+pub struct GetMetaTxParamsResp {
     #[serde(rename = "configure")]
-    pub configure: GetMetaTxParamsResp,
+    pub configure: GetConfigureResp,
     #[serde(rename = "contracts")]
     pub contracts: Contracts,
     #[serde(rename = "nonce")]
@@ -280,11 +280,10 @@ impl Cfs {
         if !result_boolean {
             return Err(anyhow!("CFS output result_boolean is false"));
         }
-        let result_data = res_kv["data"]
-            .to_string();
-            //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+        let result_data = res_kv["data"].as_str()
+            .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
 
-        let result_data_bytes = result_data.into_bytes();
+        let result_data_bytes = result_data.as_bytes().to_vec();
         Ok(result_data_bytes)
     }
 
@@ -357,11 +356,10 @@ impl Cfs {
         if !result_boolean {
             return Err(anyhow!("CFS output result_boolean is false"));
         }
-        let result_data = res_kv["data"]
-            .to_string();
-        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+        let result_data = res_kv["data"].as_str()
+            .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
 
-        let rsp = serde_json::from_str::<MintFilesystemResp>(&result_data)?;
+        let rsp = serde_json::from_str::<MintFilesystemResp>(result_data)?;
         Ok(rsp)
     }
 
@@ -393,11 +391,10 @@ impl Cfs {
         if !result_boolean {
             return Err(anyhow!("CFS output result_boolean is false"));
         }
-        let result_data = res_kv["data"]
-            .to_string();
-        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+        let result_data = res_kv["data"].as_str()
+            .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
 
-        let rsp = serde_json::from_str::<GetFilesystemResp>(&result_data)?;
+        let rsp = serde_json::from_str::<GetFilesystemResp>(result_data)?;
         Ok(rsp)
     }
 
@@ -470,11 +467,10 @@ impl Cfs {
         if !result_boolean {
             return Err(anyhow!("CFS output result_boolean is false"));
         }
-        let result_data = res_kv["data"]
-            .to_string();
-        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+        let result_data = res_kv["data"].as_str()
+            .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
 
-        let rsp = serde_json::from_str::<GetMetaTxParamsResp>(&result_data)?;
+        let rsp = serde_json::from_str::<GetMetaTxParamsResp>(result_data)?;
         Ok(rsp)
     }
 
@@ -500,11 +496,12 @@ impl Cfs {
         if !result_boolean {
             return Err(anyhow!("CFS output result_boolean is false"));
         }
-        let result_data = res_kv["data"]
-            .to_string();
-        //.ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
 
-        let rsp = serde_json::from_str::<GetConfigureResp>(&result_data)?;
+        let result_data = res_kv["data"].as_str()
+            .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+        log::info!("confilesystem - get_wellknown(): result_data = {:?}", result_data);
+        let rsp = serde_json::from_str::<GetConfigureResp>(result_data)?;
+        log::info!("confilesystem - get_wellknown(): rsp = {:?}", rsp);
         Ok(rsp)
     }
 }

@@ -345,12 +345,14 @@ func getWellKnownCfg() *C.char {
 	resMap := make(map[string]interface{})
 	resMap[ResMapKeyOk] = true
 	resMap[ResMapKeyData] = string(rspBytes)
+	fmt.Printf("confilesystem-go - getWellKnownCfg(): string(rspBytes) = %v\n", string(rspBytes))
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
 		return cgoError(err)
 	}
 
+	fmt.Printf("confilesystem-go - getWellKnownCfg(): string(res) = %v\n", string(res))
 	return C.CString(string(res))
 }
 
