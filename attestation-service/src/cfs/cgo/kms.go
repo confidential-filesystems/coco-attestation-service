@@ -54,14 +54,15 @@ func setResource(addr, typ, tag string, data string) *C.char {
 	}
 
 	resMap := make(map[string]interface{})
-	resMap[ResMapKeyOk] = true
+    resMap[ResMapKeyOk] = true
+    resMap[ResMapKeyData] = "secret-resource"
 
-	res, err := json.Marshal(resMap)
-	if err != nil {
-		return cgoError(err)
-	}
+    res, err := json.Marshal(resMap)
+    if err != nil {
+        return cgoError(err)
+    }
 
-	return C.CString(string(res))
+    return C.CString(string(res))
 }
 
 //export getResource

@@ -195,7 +195,7 @@ impl Cfs {
         resource_type: String,
         resource_tag: String,
         resource_data: &[u8],
-    ) -> Result<()> {
+    ) -> Result<Vec<u8>> {
         log::debug!("confilesystem - set_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
             repository_name, resource_type, resource_tag);
 
@@ -236,7 +236,11 @@ impl Cfs {
         if !result_boolean {
             return Err(anyhow!("CFS output result_boolean is false"));
         }
-        Ok(())
+        let result_data = res_kv["data"].as_str()
+            .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+
+        let result_data_bytes = result_data.as_bytes().to_vec();
+        Ok(result_data_bytes)
     }
 
     pub async fn get_resource(
