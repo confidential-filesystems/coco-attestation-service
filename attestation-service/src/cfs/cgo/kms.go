@@ -44,9 +44,33 @@ func initKMS(storageType string) *C.char {
 
 //export setResource
 func setResource(addr, typ, tag string, data string) *C.char {
-	//
 	fmt.Printf("confilesystem-go - setResource(): addr = %v, typ = %v, tag = %v, data = %v\n",
 		addr, typ, tag, data)
+
+	/*
+	   // ownership/filesystems/mint
+	   // ownership/filesystems/burn
+	*/
+	switch addr {
+	case "ownership":
+		{
+			switch typ {
+			case "filesystems":
+				{
+					switch tag {
+					case "mint":
+						{
+							return mintFilesystem(data)
+						}
+					case "burn":
+						{
+							return burnFilesystem(data)
+						}
+					}
+				}
+			}
+		}
+	}
 
 	err := resourceInstance.SetResource(addr, typ, tag, ([]byte)(data))
 	if err != nil {
@@ -54,22 +78,51 @@ func setResource(addr, typ, tag string, data string) *C.char {
 	}
 
 	resMap := make(map[string]interface{})
-    resMap[ResMapKeyOk] = true
-    resMap[ResMapKeyData] = "secret-resource"
+	resMap[ResMapKeyOk] = true
+	resMap[ResMapKeyData] = "secret-resource"
 
-    res, err := json.Marshal(resMap)
-    if err != nil {
-        return cgoError(err)
-    }
+	res, err := json.Marshal(resMap)
+	if err != nil {
+		return cgoError(err)
+	}
 
-    return C.CString(string(res))
+	return C.CString(string(res))
 }
 
 //export getResource
 func getResource(addr, typ, tag string) *C.char {
-	//
 	fmt.Printf("confilesystem-go - getResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
+
+	/*
+		// ownership/filesystems/:name
+		// ownership/accounts-metatx/:addr
+		// ownership/configure/.well-known
+	*/
+	switch addr {
+	case "ownership":
+		{
+			switch typ {
+			case "filesystems":
+				{
+					return getFilesystem(tag)
+				}
+			case "accounts-metatx":
+				{
+					return getAccountMetaTx(tag)
+				}
+			case "configure":
+				{
+					switch tag {
+					case ".well-known":
+						{
+							return getWellKnownCfg()
+						}
+					}
+				}
+			}
+		}
+	}
 
 	data, err := resourceInstance.GetResource(addr, typ, tag)
 	if err != nil {

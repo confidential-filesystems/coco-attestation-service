@@ -13,10 +13,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var (
+	ownershipInitErrStub error = nil
+)
+
 //export initOwnership
 func initOwnership(cfgFile string, ctxTimeoutSec int64) *C.char {
 	err := utils.InitOwnerServFunc(cfgFile, ctxTimeoutSec)
 	if err != nil {
+		ownershipInitErrStub = err
 		return cgoError(err)
 	}
 
@@ -25,9 +30,11 @@ func initOwnership(cfgFile string, ctxTimeoutSec int64) *C.char {
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
+		ownershipInitErrStub = err
 		return cgoError(err)
 	}
 
+	ownershipInitErrStub = nil
 	return C.CString(string(res))
 }
 
@@ -105,6 +112,11 @@ func mintFilesystem(req string) *C.char {
 	if err != nil {
 		return cgoError(err)
 	}
+
+	if ownershipInitErrStub != nil {
+		return cgoError(fmt.Errorf("mintFilesystem() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	}
+
 	err, mintFilesystemResp := utils.MintFs(mintFilesystemReq)
 	if err != nil {
 		return cgoError(err)
@@ -152,6 +164,10 @@ func toGetFilesystemRsp(getFilesystemResp *response.GetFilesystemResp) (*GetFile
 //export getFilesystem
 func getFilesystem(name string) *C.char {
 	fmt.Printf("confilesystem-go - getFilesystem(): name = %v\n", name)
+
+	if ownershipInitErrStub != nil {
+		return cgoError(fmt.Errorf("getFilesystem() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	}
 
 	err, getFilesystemResp := utils.GetFs(name)
 	if err != nil {
@@ -229,6 +245,11 @@ func burnFilesystem(req string) *C.char {
 	if err != nil {
 		return cgoError(err)
 	}
+
+	if ownershipInitErrStub != nil {
+		return cgoError(fmt.Errorf("burnFilesystem() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	}
+
 	err = utils.BurnFs(burnFilesystemReq)
 	if err != nil {
 		return cgoError(err)
@@ -289,6 +310,10 @@ func toGetMetaTxParamsRsp(getMetaTxParamsResp *response.GetMetaTxParamsResp) (*G
 func getAccountMetaTx(addr string) *C.char {
 	fmt.Printf("confilesystem-go - getAccountMetaTx(): addr = %v\n", addr)
 
+	if ownershipInitErrStub != nil {
+		return cgoError(fmt.Errorf("getAccountMetaTx() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	}
+
 	err, getMetaTxParamsResp := utils.GetAccountMetaTx(addr)
 	if err != nil {
 		return cgoError(err)
@@ -329,7 +354,7 @@ func toGetConfigureRsp(getConfigureResp *response.GetConfigureResp) (*GetConfigu
 
 //export getWellKnownCfg
 func getWellKnownCfg() *C.char {
-	fmt.Printf("confilesystem-go - getWellKnownCfg(): \n")
+	fmt.Printf("confilesystem-go - getWellKnownCfg(): ownershipInitErrStub = %v\n", ownershipInitErrStub)
 
 	getWellKnownCfgResp := utils.GetWellKnownCfg()
 	rsp, err := toGetConfigureRsp(getWellKnownCfgResp)
