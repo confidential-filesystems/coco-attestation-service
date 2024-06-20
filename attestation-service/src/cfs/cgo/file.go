@@ -43,6 +43,16 @@ func (f *File) SetResource(addr, typ, tag string, data []byte) error {
 	return err
 }
 
+func (f *File) DeleteResource(addr, typ, tag string) error {
+	fmt.Printf("confilesystem-go - File.DeleteResource(): addr = %v, typ = %v, tag = %v\n",
+		addr, typ, tag)
+
+	resourcePath := path.Join(defaultRepoDir, addr, typ, tag)
+	fmt.Printf("confilesystem-go - File.DeleteResource(): resourcePath = %v\n", resourcePath)
+	err := os.Remove(resourcePath)
+	return err
+}
+
 func (f *File) GetResource(addr, typ, tag string) ([]byte, error) {
 	fmt.Printf("confilesystem-go - File.GetResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)

@@ -48,8 +48,7 @@ func setResource(addr, typ, tag string, data string) *C.char {
 		addr, typ, tag, data)
 
 	/*
-	   // ownership/filesystems/mint
-	   // ownership/filesystems/burn
+	   // POST ownership/filesystems/:name
 	*/
 	switch addr {
 	case "ownership":
@@ -57,16 +56,8 @@ func setResource(addr, typ, tag string, data string) *C.char {
 			switch typ {
 			case "filesystems":
 				{
-					switch tag {
-					case "mint":
-						{
-							return mintFilesystem(data)
-						}
-					case "burn":
-						{
-							return burnFilesystem(data)
-						}
-					}
+					fmt.Printf("confilesystem-go - setResource(): -> mintFilesystem(): filesystem-name = %v\n", tag)
+					return mintFilesystem(data)
 				}
 			}
 		}
@@ -89,15 +80,53 @@ func setResource(addr, typ, tag string, data string) *C.char {
 	return C.CString(string(res))
 }
 
+//export deleteResource
+func deleteResource(addr, typ, tag string, data string) *C.char {
+	fmt.Printf("confilesystem-go - deleteResource(): addr = %v, typ = %v, tag = %v, data = %v\n",
+		addr, typ, tag, data)
+
+	/*
+	   // DELETE ownership/filesystems/:name
+	*/
+	switch addr {
+	case "ownership":
+		{
+			switch typ {
+			case "filesystems":
+				{
+					fmt.Printf("confilesystem-go - deleteResource(): -> burnFilesystem(): filesystem-name = %v\n", tag)
+					return burnFilesystem(data)
+				}
+			}
+		}
+	}
+
+	err := resourceInstance.DeleteResource(addr, typ, tag)
+	if err != nil {
+		return cgoError(err)
+	}
+
+	resMap := make(map[string]interface{})
+	resMap[ResMapKeyOk] = true
+	resMap[ResMapKeyData] = "delete-resource"
+
+	res, err := json.Marshal(resMap)
+	if err != nil {
+		return cgoError(err)
+	}
+
+	return C.CString(string(res))
+}
+
 //export getResource
 func getResource(addr, typ, tag string) *C.char {
 	fmt.Printf("confilesystem-go - getResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
 
 	/*
-		// ownership/filesystems/:name
-		// ownership/accounts-metatx/:addr
-		// ownership/configure/.well-known
+		// GET ownership/filesystems/:name
+		// GET ownership/accounts_metatx/:addr
+		// GET ownership/configure/.well-known
 	*/
 	switch addr {
 	case "ownership":
@@ -107,7 +136,7 @@ func getResource(addr, typ, tag string) *C.char {
 				{
 					return getFilesystem(tag)
 				}
-			case "accounts-metatx":
+			case "accounts_metatx":
 				{
 					return getAccountMetaTx(tag)
 				}

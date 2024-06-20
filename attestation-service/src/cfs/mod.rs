@@ -17,6 +17,7 @@ extern "C" {
     // <-> kms,ca
     pub fn initKMS(storage_type: GoString) -> *mut c_char;
     pub fn setResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
+    pub fn deleteResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
     pub fn getResource(addr: GoString, typ: GoString, tag: GoString) -> *mut c_char;
     pub fn verifySeeds(seeds: GoString) -> *mut c_char;
 
@@ -58,9 +59,9 @@ pub struct MetaTxForwardRequest {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MintFilesystemReq {
-    #[serde(rename = "metaTxRequest")]
+    #[serde(rename = "meta_tx_request")]
     pub meta_tx_request: MetaTxForwardRequest,
-    #[serde(rename = "metaTxSignature")]
+    #[serde(rename = "meta_tx_signature")]
     pub meta_tx_signature: String,
 }
 
@@ -225,6 +226,61 @@ impl Cfs {
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - set_resource(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+        let result_data = res_kv["data"].as_str()
+            .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
+
+        let result_data_bytes = result_data.as_bytes().to_vec();
+        Ok(result_data_bytes)
+    }
+
+    // <-> kms,ca
+    pub async fn delete_resource(
+        &self,
+        repository_name: String,
+        resource_type: String,
+        resource_tag: String,
+        resource_data: &[u8],
+    ) -> Result<Vec<u8>> {
+        log::debug!("confilesystem - delete_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
+            repository_name, resource_type, resource_tag);
+
+        let addr_go = GoString {
+            p: repository_name.as_ptr() as *const c_char,
+            n: repository_name.len() as isize,
+        };
+
+        let typ_go = GoString {
+            p: resource_type.as_ptr() as *const c_char,
+            n: resource_type.len() as isize,
+        };
+
+        let tag_go = GoString {
+            p: resource_tag.as_ptr() as *const c_char,
+            n: resource_tag.len() as isize,
+        };
+
+        let data_go = GoString {
+            p: resource_data.as_ptr() as *const c_char,
+            n: resource_data.len() as isize,
+        };
+
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { deleteResource(addr_go, typ_go, tag_go, data_go) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - delete_resource(): res = {:?}", res);
         if res.starts_with("Error::") {
             return Err(anyhow!(res));
         }

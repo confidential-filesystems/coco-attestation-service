@@ -50,8 +50,8 @@ type MetaTxForwardRequest struct {
 }
 
 type MintFilesystemReq struct {
-	MetaTxRequest   MetaTxForwardRequest `json:"metaTxRequest"`
-	MetaTxSignature string               `json:"metaTxSignature"`
+	MetaTxRequest   MetaTxForwardRequest `json:"meta_tx_request"`
+	MetaTxSignature string               `json:"meta_tx_signature"`
 }
 
 func toMintFilesystemReq(goReq *MintFilesystemReq) (*request.MintFilesystemReq, error) {

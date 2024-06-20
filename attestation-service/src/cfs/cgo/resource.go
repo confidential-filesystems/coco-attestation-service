@@ -11,6 +11,7 @@ const (
 
 type Resource interface {
 	SetResource(addr, typ, tag string, data []byte) error
+	DeleteResource(addr, typ, tag string) error
 	GetResource(addr, typ, tag string) ([]byte, error)
 }
 
