@@ -119,9 +119,10 @@ func deleteResource(addr, typ, tag string, data string) *C.char {
 }
 
 //export getResource
-func getResource(addr, typ, tag string) *C.char {
+func getResource(addr, typ, tag, extraRequest string) *C.char {
 	fmt.Printf("confilesystem-go - getResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
+	fmt.Printf("confilesystem-go - getResource(): extraRequest = %v\n", extraRequest)
 
 	/*
 		// GET ownership/filesystems/:name
@@ -153,7 +154,7 @@ func getResource(addr, typ, tag string) *C.char {
 		}
 	}
 
-	data, err := resourceInstance.GetResource(addr, typ, tag)
+	data, err := resourceInstance.GetResource(addr, typ, tag, extraRequest)
 	if err != nil {
 		return cgoError(err)
 	}

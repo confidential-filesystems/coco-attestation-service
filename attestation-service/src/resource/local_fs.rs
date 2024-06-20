@@ -32,10 +32,11 @@ pub struct LocalFs {
 
 #[async_trait::async_trait]
 impl Repository for LocalFs {
-    async fn read_secret_resource(&self, resource_desc: ResourceDesc) -> Result<Vec<u8>> {
+    async fn read_secret_resource(&self, resource_desc: ResourceDesc, extra_request: &str) -> Result<Vec<u8>> {
         let get_res = self.cfsi.get_resource(resource_desc.repository_name.clone(),
                                              resource_desc.resource_type.clone(),
-                                             resource_desc.resource_tag.clone())
+                                             resource_desc.resource_tag.clone(),
+                                             extra_request)
             .await?;
         info!("confilesystem - cfsi.get_resource() -> get_res = {:?}", get_res);
         Ok(get_res)
@@ -115,7 +116,7 @@ mod tests {
         };
 
         let data = local_fs
-            .read_secret_resource(resource_desc)
+            .read_secret_resource(resource_desc, "extra-request-test")
             .await
             .expect("read secret resource failed");
 

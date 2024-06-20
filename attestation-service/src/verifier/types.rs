@@ -116,7 +116,7 @@ pub async fn verify_crpt(crp_token: &String, repository: &Box<dyn Repository + S
         resource_type: "ecpk".to_string(), // get pub key
         resource_tag: parts[2].to_string(),
     };
-    let pub_key_pem_bytes = repository.read_secret_resource(resource_description)
+    let pub_key_pem_bytes = repository.read_secret_resource(resource_description, "extra-request-verify_crpt")
         .await
         .map_err(|e| anyhow!("Failed to read user {}'s public key: {}", user_addr, e))?;
     let pub_key_pem = std::str::from_utf8(&pub_key_pem_bytes).map_err(|_| anyhow!("Invalid user's public key"))?;

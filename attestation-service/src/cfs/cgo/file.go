@@ -53,11 +53,12 @@ func (f *File) DeleteResource(addr, typ, tag string) error {
 	return err
 }
 
-func (f *File) GetResource(addr, typ, tag string) ([]byte, error) {
+func (f *File) GetResource(addr, typ, tag, extraRequest string) ([]byte, error) {
 	fmt.Printf("confilesystem-go - File.GetResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
+	fmt.Printf("confilesystem-go - File.GetResource(): extraRequest = %v\n", extraRequest)
 
-	return toGetResource(defaultRepoDir, addr, typ, tag)
+	return toGetResource(defaultRepoDir, addr, typ, tag, extraRequest)
 }
 
 // utils api
@@ -65,7 +66,7 @@ func getDir(path string) string {
 	return path[:len(path)-len(filepath.Base(path))]
 }
 
-func toGetResource(repoDir, addr, typ, tag string) ([]byte, error) {
+func toGetResource(repoDir, addr, typ, tag, extraRequest string) ([]byte, error) {
 	if eCommon.IsHexAddress(addr) {
 		seeds, err := os.ReadFile(path.Join(repoDir, fmt.Sprintf(resource.ResSeeds, addr)))
 		if err != nil {
@@ -75,7 +76,7 @@ func toGetResource(repoDir, addr, typ, tag string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		return generateResource(kl, repoDir, addr, typ, tag)
+		return generateResource(kl, repoDir, addr, typ, tag, extraRequest)
 	}
 	data, err := os.ReadFile(path.Join(repoDir, addr, typ, tag))
 	if err != nil {
@@ -84,7 +85,7 @@ func toGetResource(repoDir, addr, typ, tag string) ([]byte, error) {
 	return data, nil
 }
 
-func generateResource(kl *resource.KeyLoad, repoDir, addr, typ, tag string) ([]byte, error) {
+func generateResource(kl *resource.KeyLoad, repoDir, addr, typ, tag, extraRequest string) ([]byte, error) {
 	switch typ {
 	case resource.ResTypeEcsk:
 		ecki, err := resource.Str2Uint32(tag)

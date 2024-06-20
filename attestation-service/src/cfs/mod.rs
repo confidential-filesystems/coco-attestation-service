@@ -18,7 +18,7 @@ extern "C" {
     pub fn initKMS(storage_type: GoString) -> *mut c_char;
     pub fn setResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
     pub fn deleteResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
-    pub fn getResource(addr: GoString, typ: GoString, tag: GoString) -> *mut c_char;
+    pub fn getResource(addr: GoString, typ: GoString, tag: GoString, extra_request: GoString) -> *mut c_char;
     pub fn verifySeeds(seeds: GoString) -> *mut c_char;
 
     // <-> ownership
@@ -304,9 +304,11 @@ impl Cfs {
         repository_name: String,
         resource_type: String,
         resource_tag: String,
+        extra_request: &str,
     ) -> Result<Vec<u8>> {
         log::debug!("confilesystem - get_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
             repository_name, resource_type, resource_tag);
+        log::debug!("confilesystem - get_resource(): extra_request: {:?}",extra_request);
 
         let addr_go = GoString {
             p: repository_name.as_ptr() as *const c_char,
@@ -323,9 +325,14 @@ impl Cfs {
             n: resource_tag.len() as isize,
         };
 
+        let extra_request_go = GoString {
+            p: extra_request.as_ptr() as *const c_char,
+            n: extra_request.len() as isize,
+        };
+
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { getResource(addr_go, typ_go, tag_go) };
+            unsafe { getResource(addr_go, typ_go, tag_go, extra_request_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - get_resource(): res = {:?}", res);
