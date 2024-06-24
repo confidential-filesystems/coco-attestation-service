@@ -14,14 +14,21 @@ import (
 )
 
 var (
-	ownershipInitErrStub error = nil
+	gOwnershipInitErrStub error = nil
+
+	gCfgFile       string = ""
+	gCtxTimeoutSec int64  = 0
 )
 
 //export initOwnership
 func initOwnership(cfgFile string, ctxTimeoutSec int64) *C.char {
+	gOwnershipInitErrStub = nil
+	gCfgFile = cfgFile
+	gCtxTimeoutSec = ctxTimeoutSec
+
 	err := utils.InitOwnerServFunc(cfgFile, ctxTimeoutSec)
 	if err != nil {
-		ownershipInitErrStub = err
+		gOwnershipInitErrStub = err
 		return cgoError(err)
 	}
 
@@ -30,11 +37,11 @@ func initOwnership(cfgFile string, ctxTimeoutSec int64) *C.char {
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
-		ownershipInitErrStub = err
+		gOwnershipInitErrStub = err
 		return cgoError(err)
 	}
 
-	ownershipInitErrStub = nil
+	gOwnershipInitErrStub = nil
 	return C.CString(string(res))
 }
 
@@ -113,8 +120,14 @@ func mintFilesystem(req string) *C.char {
 		return cgoError(err)
 	}
 
-	if ownershipInitErrStub != nil {
-		return cgoError(fmt.Errorf("mintFilesystem() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	if gOwnershipInitErrStub != nil {
+		fmt.Printf("mintFilesystem() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
+		err = utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		if err != nil {
+			gOwnershipInitErrStub = err
+			return cgoError(err)
+		}
+		gOwnershipInitErrStub = nil
 	}
 
 	err, mintFilesystemResp := utils.MintFs(mintFilesystemReq)
@@ -165,8 +178,14 @@ func toGetFilesystemRsp(getFilesystemResp *response.GetFilesystemResp) (*GetFile
 func getFilesystem(name string) *C.char {
 	fmt.Printf("confilesystem-go - getFilesystem(): name = %v\n", name)
 
-	if ownershipInitErrStub != nil {
-		return cgoError(fmt.Errorf("getFilesystem() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	if gOwnershipInitErrStub != nil {
+		fmt.Printf("getFilesystem() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
+		err := utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		if err != nil {
+			gOwnershipInitErrStub = err
+			return cgoError(err)
+		}
+		gOwnershipInitErrStub = nil
 	}
 
 	err, getFilesystemResp := utils.GetFs(name)
@@ -246,8 +265,14 @@ func burnFilesystem(req string) *C.char {
 		return cgoError(err)
 	}
 
-	if ownershipInitErrStub != nil {
-		return cgoError(fmt.Errorf("burnFilesystem() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	if gOwnershipInitErrStub != nil {
+		fmt.Printf("burnFilesystem() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
+		err = utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		if err != nil {
+			gOwnershipInitErrStub = err
+			return cgoError(err)
+		}
+		gOwnershipInitErrStub = nil
 	}
 
 	err = utils.BurnFs(burnFilesystemReq)
@@ -310,8 +335,14 @@ func toGetMetaTxParamsRsp(getMetaTxParamsResp *response.GetMetaTxParamsResp) (*G
 func getAccountMetaTx(addr string) *C.char {
 	fmt.Printf("confilesystem-go - getAccountMetaTx(): addr = %v\n", addr)
 
-	if ownershipInitErrStub != nil {
-		return cgoError(fmt.Errorf("getAccountMetaTx() In: but ownershipInitErrStub = %v", ownershipInitErrStub))
+	if gOwnershipInitErrStub != nil {
+		fmt.Printf("getAccountMetaTx() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
+		err := utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		if err != nil {
+			gOwnershipInitErrStub = err
+			return cgoError(err)
+		}
+		gOwnershipInitErrStub = nil
 	}
 
 	err, getMetaTxParamsResp := utils.GetAccountMetaTx(addr)
@@ -354,7 +385,7 @@ func toGetConfigureRsp(getConfigureResp *response.GetConfigureResp) (*GetConfigu
 
 //export getWellKnownCfg
 func getWellKnownCfg() *C.char {
-	fmt.Printf("confilesystem-go - getWellKnownCfg(): ownershipInitErrStub = %v\n", ownershipInitErrStub)
+	fmt.Printf("confilesystem-go - getWellKnownCfg(): gOwnershipInitErrStub = %v\n", gOwnershipInitErrStub)
 
 	getWellKnownCfgResp := utils.GetWellKnownCfg()
 	rsp, err := toGetConfigureRsp(getWellKnownCfgResp)
