@@ -183,8 +183,16 @@ func generateResource(kl *resource.KeyLoad, repoDir, addr, typ, tag, extraReques
 			certs.CA = caPem
 			return json.Marshal(&certs)
 		case resource.ResCertsServer:
+			csr, err := cert.ParseCsr(extraRequest)
+			if err != nil {
+				return nil, err
+			}
+			serverTemplate, err := cert.NewServerCertTemplate(csr, nil)
+			if err != nil {
+				return nil, err
+			}
 			var certs resource.ServerCerts
-			certs.Cert, certs.Key, err = cert.CreateServerCertificate(caPriv, caPem, nil, nil)
+			certs.Cert, certs.Key, err = cert.CreateServerCertificate(caPriv, caPem, serverTemplate, nil)
 			if err != nil {
 				return nil, err
 			}
