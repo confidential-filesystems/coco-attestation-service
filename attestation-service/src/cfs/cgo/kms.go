@@ -19,11 +19,13 @@ var (
 )
 
 //export initKMS
-func initKMS(storageType string) *C.char {
-	fmt.Printf("confilesystem-go - initKMS(): storageType = %v\n", storageType)
+func initKMS(storageType string, storeFileRepoDir string) *C.char {
+	fmt.Printf("confilesystem-go - initKMS(): storageType = %v, storeFileRepoDir = %v\n",
+		storageType, storeFileRepoDir)
 	var err error = nil
 	config = Config{
-		StorageType: storageType,
+		StorageType:      storageType,
+		StoreFileRepoDir: storeFileRepoDir,
 	}
 	resourceInstance, err = NewResource(config)
 	fmt.Printf("confilesystem-go - initKMS(): NewResource() -> err = %v\n", err)
@@ -177,6 +179,9 @@ func verifySeeds(seeds string) *C.char {
 		return cgoError(errors.New("seeds is empty"))
 	}
 	kl, err := resource.NewKeyLoad(seeds)
+	fmt.Printf("confilesystem-go - verifySeeds(): seeds = %v\n", seeds)
+	fmt.Printf("confilesystem-go - verifySeeds(): kl = %v\n", kl)
+	fmt.Printf("confilesystem-go - verifySeeds(): err = %v\n", err)
 	if err != nil {
 		return cgoError(err)
 	}

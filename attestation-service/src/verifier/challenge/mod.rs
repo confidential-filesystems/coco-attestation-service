@@ -8,10 +8,17 @@ use serde_json::json;
 use sha2::{Digest, Sha384};
 use crate::verifier::types::{RAEvidence, CRPTPayload, expected_hash, verify_crpt, default_authed_res_for_controller, authed_res};
 
-const ENV_CFS_CONTROLLER_ID: &str  ="CFS_CONTROLLER_ID";
-const ENV_CFS_METADATA_ID: &str  ="CFS_METADATA_ID";
-const ENV_CFS_WORKLOAD_ID: &str  ="CFS_WORKLOAD_ID";
 const ENV_CFS_EMULATED_MODE: &str  ="CFS_EMULATED_MODE";
+
+pub const ENV_CFS_SECURITY_ID: &str  ="CFS_SECURITY_ID";
+pub const ENV_CFS_CONTROLLER_ID: &str  ="CFS_CONTROLLER_ID";
+pub const ENV_CFS_METADATA_ID: &str  ="CFS_METADATA_ID";
+pub const ENV_CFS_WORKLOAD_ID: &str  ="CFS_WORKLOAD_ID";
+
+pub const CFS_SECURITY_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_security";
+pub const CFS_CONTROLLER_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_controller";
+pub const CFS_METADATA_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_metadata";
+pub const CFS_WORKLOAD_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_workload";
 
 const EMULATED_GUEST_SVN: u32 = std::u32::MAX;
 
@@ -73,7 +80,7 @@ async fn verify_tee_evidence(
     let controller_att_report = tee_evidence.attestation_reports[0].attestation_report;
     if is_emulated {
         // check mock ld
-        let controller_id = env::var(ENV_CFS_CONTROLLER_ID).unwrap_or_else(|_| "cc_cfs_controller_2024".to_string());
+        let controller_id = env::var(ENV_CFS_CONTROLLER_ID).unwrap_or_else(|_| CFS_CONTROLLER_ID_DEFAULT.to_string());
         if controller_att_report.measurement != expected_hash(&controller_id) {
             warn!("Invalid controller measurement!");
             return Err(anyhow!("Invalid controller measurement!"));
@@ -118,7 +125,7 @@ async fn verify_tee_evidence(
                 }
                 let meta_att_report = att_report.attestation_report;
                 // check mock ld
-                let metadata_id = env::var(ENV_CFS_METADATA_ID).unwrap_or_else(|_| "cc_cfs_metadata_2024".to_string());
+                let metadata_id = env::var(ENV_CFS_METADATA_ID).unwrap_or_else(|_| CFS_METADATA_ID_DEFAULT.to_string());
                 if meta_att_report.measurement != expected_hash(&metadata_id) {
                     warn!("Invalid metadata measurement!");
                     return Err(anyhow!("Invalid metadata measurement!"));
@@ -132,7 +139,7 @@ async fn verify_tee_evidence(
                 let workload_att_report = att_report.attestation_report;
                 if is_emulated || workload_att_report.guest_svn == EMULATED_GUEST_SVN {
                     // check mock ld
-                    let workload_id = env::var(ENV_CFS_WORKLOAD_ID).unwrap_or_else(|_| "cc_cfs_workload_2024".to_string());
+                    let workload_id = env::var(ENV_CFS_WORKLOAD_ID).unwrap_or_else(|_| CFS_WORKLOAD_ID_DEFAULT.to_string());
                     if workload_att_report.measurement != expected_hash(&workload_id) {
                         warn!("Invalid workload measurement!");
                         return Err(anyhow!("Invalid workload measurement!"));

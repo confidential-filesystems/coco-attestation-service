@@ -16,7 +16,8 @@ type Resource interface {
 }
 
 type Config struct {
-	StorageType string `json:"storageType,omitempty"`
+	StorageType      string `json:"storageType,omitempty"`
+	StoreFileRepoDir string `json:"storeFileRepoDir,omitempty"`
 }
 
 func NewResource(config Config) (Resource, error) {

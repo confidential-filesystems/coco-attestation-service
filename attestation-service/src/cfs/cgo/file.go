@@ -17,15 +17,26 @@ import (
 )
 
 const (
-	defaultRepoDir = "/opt/confidential-containers/kbs/repository"
+// defaultRepoDir = "/opt/confidential-containers/kbs/repository"
 )
 
 type File struct {
 	Resource
+
+	RepoDir string
 }
 
 func NewFile(config Config) (Resource, error) {
-	file := &File{}
+	repoDir := config.StoreFileRepoDir // defaultRepoDir
+	err := os.MkdirAll(repoDir, os.ModePerm)
+	fmt.Printf("confilesystem-go - NewFile: os.MkdirAll(%v) -> err = %v\n",
+		repoDir, err)
+	if err != nil {
+		return nil, err
+	}
+	file := &File{
+		RepoDir: repoDir,
+	}
 	return file, nil
 }
 
@@ -33,7 +44,7 @@ func (f *File) SetResource(addr, typ, tag string, data []byte) error {
 	fmt.Printf("confilesystem-go - File.SetResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
 
-	resourcePath := path.Join(defaultRepoDir, addr, typ, tag)
+	resourcePath := path.Join(f.RepoDir, addr, typ, tag)
 	fmt.Printf("confilesystem-go - File.GetResource(): resourcePath = %v\n", resourcePath)
 	err := os.MkdirAll(getDir(resourcePath), os.ModePerm)
 	if err != nil {
@@ -47,7 +58,7 @@ func (f *File) DeleteResource(addr, typ, tag string) error {
 	fmt.Printf("confilesystem-go - File.DeleteResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
 
-	resourcePath := path.Join(defaultRepoDir, addr, typ, tag)
+	resourcePath := path.Join(f.RepoDir, addr, typ, tag)
 	fmt.Printf("confilesystem-go - File.DeleteResource(): resourcePath = %v\n", resourcePath)
 	err := os.Remove(resourcePath)
 	return err
@@ -58,7 +69,7 @@ func (f *File) GetResource(addr, typ, tag, extraRequest string) ([]byte, error) 
 		addr, typ, tag)
 	fmt.Printf("confilesystem-go - File.GetResource(): extraRequest = %v\n", extraRequest)
 
-	return toGetResource(defaultRepoDir, addr, typ, tag, extraRequest)
+	return toGetResource(f.RepoDir, addr, typ, tag, extraRequest)
 }
 
 // utils api

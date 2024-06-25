@@ -15,7 +15,7 @@ use crate::rvps::store::StoreType;
 #[link(name = "cfs")]
 extern "C" {
     // <-> kms,ca
-    pub fn initKMS(storage_type: GoString) -> *mut c_char;
+    pub fn initKMS(storage_type: GoString, store_file_repo_dir: GoString) -> *mut c_char;
     pub fn setResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
     pub fn deleteResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
     pub fn getResource(addr: GoString, typ: GoString, tag: GoString, extra_request: GoString) -> *mut c_char;
@@ -132,19 +132,24 @@ impl Cfs {
 impl Cfs {
     // init cfs
     pub fn init_cfs(
-        kms_store_type: String,
+        kms_store_type: String, kms_store_file_repo_dir: String,
         ownership_cfg_file: String, ownership_ctx_timeout_sec: i64
     ) -> Result<()> {
         // init kms
-        log::debug!("confilesystem - init_cfs() - initKMS(): kms_store_type: {:?}", kms_store_type);
+        log::debug!("confilesystem - init_cfs() - initKMS(): kms_store_type: {:?}, kms_store_file_repo_dir: {:?}",
+            kms_store_type, kms_store_file_repo_dir);
         let kms_store_type_go = GoString {
             p: kms_store_type.as_ptr() as *const c_char,
             n: kms_store_type.len() as isize,
         };
+        let kms_store_file_repo_dir_go = GoString {
+            p: kms_store_file_repo_dir.as_ptr() as *const c_char,
+            n: kms_store_file_repo_dir.len() as isize,
+        };
 
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { initKMS(kms_store_type_go) };
+            unsafe { initKMS(kms_store_type_go, kms_store_file_repo_dir_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - init_cfs() - initKMS(): res = {:?}", res);
