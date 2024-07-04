@@ -45,8 +45,9 @@ func (f *File) SetResource(addr, typ, tag string, data []byte) error {
 		addr, typ, tag)
 
 	resourcePath := path.Join(f.RepoDir, addr, typ, tag)
-	fmt.Printf("confilesystem-go - File.GetResource(): resourcePath = %v\n", resourcePath)
-	err := os.MkdirAll(getDir(resourcePath), os.ModePerm)
+	folder := getDir(resourcePath)
+	fmt.Printf("confilesystem-go - File.SetResource(): resourcePath = %v folder = %v\n", resourcePath, folder)
+	err := os.MkdirAll(folder, os.ModePerm)
 	if err != nil {
 		return err
 	}

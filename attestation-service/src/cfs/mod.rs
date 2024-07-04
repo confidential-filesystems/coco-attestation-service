@@ -4,6 +4,7 @@
 
 use anyhow::{anyhow, bail, Result};
 //use async_trait::async_trait;
+use base64::Engine;
 use serde_json::Value;
 use std::ffi::CStr;
 use std::os::raw::c_char;
@@ -355,7 +356,12 @@ impl Cfs {
         let result_data = res_kv["data"].as_str()
             .ok_or_else(|| anyhow!("CFS output must contain \"data\" String value"))?;
 
-        let result_data_bytes = result_data.as_bytes().to_vec();
+        if repository_name == "ownership" {
+            return Ok(result_data.as_bytes().to_vec());
+        }
+        // base64 decode
+        let result_data_bytes = base64::engine::general_purpose::STANDARD.decode(result_data)
+            .map_err(|e| anyhow!("Base64 decode CFS output failed: {:?}", e))?;
         Ok(result_data_bytes)
     }
 

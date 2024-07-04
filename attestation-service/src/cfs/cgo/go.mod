@@ -106,7 +106,7 @@ require (
 )
 
 replace (
-	confidentialfilesystems.com/cc/keyprovider => ../../../../../filesystem-toolchain/image/keyprovider
+        github.com/containers/skopeo v1.14.2 => github.com/confidential-filesystems/containers-skopeo v1.14.3-0.20240620101228-3d3d33f1b087
 	github.com/confidential-filesystems/filesystem-common => ../../../../../filesystem-common
 	github.com/confidential-filesystems/filesystem-contracts/lib => ../../../../../filesystem-contracts/lib
 	github.com/confidential-filesystems/filesystem-ownership => ../../../../../filesystem-ownership

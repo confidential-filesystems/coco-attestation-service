@@ -163,7 +163,7 @@ func getResource(addr, typ, tag, extraRequest string) *C.char {
 
 	resMap := make(map[string]interface{})
 	resMap[ResMapKeyOk] = true
-	resMap[ResMapKeyData] = string(data)
+	resMap[ResMapKeyData] = data // will be base64 encoded
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
