@@ -10,9 +10,9 @@ const (
 )
 
 type Resource interface {
-	SetResource(addr, typ, tag string, data []byte) error
-	DeleteResource(addr, typ, tag string) error
-	GetResource(addr, typ, tag, extraRequest string) ([]byte, error)
+	SetResource(repoDir, addr, typ, tag string, data []byte) error
+	DeleteResource(repoDir, addr, typ, tag string) error
+	GetResource(repoDir, addr, typ, tag, extraRequest string) ([]byte, error)
 }
 
 type Config struct {

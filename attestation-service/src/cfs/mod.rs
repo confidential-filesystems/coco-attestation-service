@@ -17,9 +17,9 @@ use crate::rvps::store::StoreType;
 extern "C" {
     // <-> kms,ca
     pub fn initKMS(storage_type: GoString, store_file_repo_dir: GoString) -> *mut c_char;
-    pub fn setResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
-    pub fn deleteResource(addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
-    pub fn getResource(addr: GoString, typ: GoString, tag: GoString, extra_request: GoString) -> *mut c_char;
+    pub fn setResource(store_file_repo_dir: GoString, addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
+    pub fn deleteResource(store_file_repo_dir: GoString, addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
+    pub fn getResource(store_file_repo_dir: GoString, addr: GoString, typ: GoString, tag: GoString, extra_request: GoString) -> *mut c_char;
     pub fn verifySeeds(seeds: GoString) -> *mut c_char;
 
     // <-> ownership
@@ -120,12 +120,13 @@ pub struct GetMetaTxParamsResp {
 #[derive(Debug, Clone)]
 pub struct Cfs {
     info: String,
+    repo_dir: String,
 }
 
 impl Cfs {
-    pub fn new(info: String) -> Result<Self> {
+    pub fn new(info: String, repo_dir: String) -> Result<Self> {
 
-        Ok(Self { info })
+        Ok(Self { info, repo_dir })
     }
 }
 
@@ -133,10 +134,12 @@ impl Cfs {
 impl Cfs {
     // init cfs
     pub fn init_cfs(
+        &mut self,
         kms_store_type: String, kms_store_file_repo_dir: String,
         ownership_cfg_file: String, ownership_ctx_timeout_sec: i64
     ) -> Result<()> {
         // init kms
+        self.repo_dir = kms_store_file_repo_dir.clone();
         log::debug!("confilesystem - init_cfs() - initKMS(): kms_store_type: {:?}, kms_store_file_repo_dir: {:?}",
             kms_store_type, kms_store_file_repo_dir);
         let kms_store_type_go = GoString {
@@ -205,6 +208,10 @@ impl Cfs {
     ) -> Result<Vec<u8>> {
         log::debug!("confilesystem - set_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
             repository_name, resource_type, resource_tag);
+        let kms_store_file_repo_dir_go = GoString {
+            p: self.repo_dir.as_ptr() as *const c_char,
+            n: self.repo_dir.len() as isize,
+        };
 
         let addr_go = GoString {
             p: repository_name.as_ptr() as *const c_char,
@@ -228,7 +235,7 @@ impl Cfs {
 
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { setResource(addr_go, typ_go, tag_go, data_go) };
+            unsafe { setResource(kms_store_file_repo_dir_go, addr_go, typ_go, tag_go, data_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - set_resource(): res = {:?}", res);
@@ -260,6 +267,10 @@ impl Cfs {
     ) -> Result<Vec<u8>> {
         log::debug!("confilesystem - delete_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
             repository_name, resource_type, resource_tag);
+        let kms_store_file_repo_dir_go = GoString {
+            p: self.repo_dir.as_ptr() as *const c_char,
+            n: self.repo_dir.len() as isize,
+        };
 
         let addr_go = GoString {
             p: repository_name.as_ptr() as *const c_char,
@@ -283,7 +294,7 @@ impl Cfs {
 
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { deleteResource(addr_go, typ_go, tag_go, data_go) };
+            unsafe { deleteResource(kms_store_file_repo_dir_go, addr_go, typ_go, tag_go, data_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - delete_resource(): res = {:?}", res);
@@ -315,6 +326,10 @@ impl Cfs {
         log::debug!("confilesystem - get_resource(): repository_name: {:?}, resource_type: {:?}, resource_tag: {:?}",
             repository_name, resource_type, resource_tag);
         log::debug!("confilesystem - get_resource(): extra_request: {:?}",extra_request);
+        let kms_store_file_repo_dir_go = GoString {
+            p: self.repo_dir.as_ptr() as *const c_char,
+            n: self.repo_dir.len() as isize,
+        };
 
         let addr_go = GoString {
             p: repository_name.as_ptr() as *const c_char,
@@ -338,7 +353,7 @@ impl Cfs {
 
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { getResource(addr_go, typ_go, tag_go, extra_request_go) };
+            unsafe { getResource(kms_store_file_repo_dir_go, addr_go, typ_go, tag_go, extra_request_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - get_resource(): res = {:?}", res);

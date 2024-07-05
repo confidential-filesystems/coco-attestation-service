@@ -40,11 +40,14 @@ func NewFile(config Config) (Resource, error) {
 	return file, nil
 }
 
-func (f *File) SetResource(addr, typ, tag string, data []byte) error {
-	fmt.Printf("confilesystem-go - File.SetResource(): addr = %v, typ = %v, tag = %v\n",
-		addr, typ, tag)
+func (f *File) SetResource(repoDir, addr, typ, tag string, data []byte) error {
+	fmt.Printf("confilesystem-go - File.SetResource(): addr = %v, typ = %v, tag = %v, repoDir = %v, f.RepoDir = %v\n",
+		addr, typ, tag, repoDir, f.RepoDir)
 
-	resourcePath := path.Join(f.RepoDir, addr, typ, tag)
+	if repoDir == "" {
+		repoDir = f.RepoDir
+	}
+	resourcePath := path.Join(repoDir, addr, typ, tag)
 	folder := getDir(resourcePath)
 	fmt.Printf("confilesystem-go - File.SetResource(): resourcePath = %v folder = %v\n", resourcePath, folder)
 	err := os.MkdirAll(folder, os.ModePerm)
@@ -55,22 +58,25 @@ func (f *File) SetResource(addr, typ, tag string, data []byte) error {
 	return err
 }
 
-func (f *File) DeleteResource(addr, typ, tag string) error {
-	fmt.Printf("confilesystem-go - File.DeleteResource(): addr = %v, typ = %v, tag = %v\n",
-		addr, typ, tag)
-
-	resourcePath := path.Join(f.RepoDir, addr, typ, tag)
+func (f *File) DeleteResource(repoDir, addr, typ, tag string) error {
+	fmt.Printf("confilesystem-go - File.DeleteResource(): addr = %v, typ = %v, tag = %v, repoDir = %v, f.RepoDir = %v\n",
+		addr, typ, tag, repoDir, f.RepoDir)
+	if repoDir == "" {
+		repoDir = f.RepoDir
+	}
+	resourcePath := path.Join(repoDir, addr, typ, tag)
 	fmt.Printf("confilesystem-go - File.DeleteResource(): resourcePath = %v\n", resourcePath)
 	err := os.Remove(resourcePath)
 	return err
 }
 
-func (f *File) GetResource(addr, typ, tag, extraRequest string) ([]byte, error) {
-	fmt.Printf("confilesystem-go - File.GetResource(): addr = %v, typ = %v, tag = %v\n",
-		addr, typ, tag)
-	fmt.Printf("confilesystem-go - File.GetResource(): extraRequest = %v\n", extraRequest)
-
-	return toGetResource(f.RepoDir, addr, typ, tag, extraRequest)
+func (f *File) GetResource(repoDir, addr, typ, tag, extraRequest string) ([]byte, error) {
+	fmt.Printf("confilesystem-go - File.GetResource(): addr = %v, typ = %v, tag = %v, extraRequest = %v, repoDir = %v, f.RepoDir = %v\n",
+		addr, typ, tag, extraRequest, repoDir, f.RepoDir)
+	if repoDir == "" {
+		repoDir = f.RepoDir
+	}
+	return toGetResource(repoDir, addr, typ, tag, extraRequest)
 }
 
 // utils api

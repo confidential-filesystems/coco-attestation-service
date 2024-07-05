@@ -27,6 +27,10 @@ func initKMS(storageType string, storeFileRepoDir string) *C.char {
 		StorageType:      storageType,
 		StoreFileRepoDir: storeFileRepoDir,
 	}
+	// FIXME: unknown reason that the StoreFileRepoDir will be changed after set
+	// for example:
+	// origin StoreFileRepoDir: /opt/confidential-containers/kbs/repository
+	// later resourceInstance.RepoDir will be changed to /opa/confidential-containers/kbs/policy.reg
 	resourceInstance, err = NewResource(config)
 	fmt.Printf("confilesystem-go - initKMS(): NewResource() -> err = %v\n", err)
 	if err != nil {
@@ -45,7 +49,7 @@ func initKMS(storageType string, storeFileRepoDir string) *C.char {
 }
 
 //export setResource
-func setResource(addr, typ, tag string, data string) *C.char {
+func setResource(storeFileRepoDir, addr, typ, tag string, data string) *C.char {
 	fmt.Printf("confilesystem-go - setResource(): addr = %v, typ = %v, tag = %v, data = %v\n",
 		addr, typ, tag, data)
 
@@ -65,7 +69,7 @@ func setResource(addr, typ, tag string, data string) *C.char {
 		}
 	}
 
-	err := resourceInstance.SetResource(addr, typ, tag, ([]byte)(data))
+	err := resourceInstance.SetResource(storeFileRepoDir, addr, typ, tag, ([]byte)(data))
 	if err != nil {
 		return cgoError(err)
 	}
@@ -83,7 +87,7 @@ func setResource(addr, typ, tag string, data string) *C.char {
 }
 
 //export deleteResource
-func deleteResource(addr, typ, tag string, data string) *C.char {
+func deleteResource(storeFileRepoDir, addr, typ, tag string, data string) *C.char {
 	fmt.Printf("confilesystem-go - deleteResource(): addr = %v, typ = %v, tag = %v, data = %v\n",
 		addr, typ, tag, data)
 
@@ -103,7 +107,7 @@ func deleteResource(addr, typ, tag string, data string) *C.char {
 		}
 	}
 
-	err := resourceInstance.DeleteResource(addr, typ, tag)
+	err := resourceInstance.DeleteResource(storeFileRepoDir, addr, typ, tag)
 	if err != nil {
 		return cgoError(err)
 	}
@@ -121,7 +125,7 @@ func deleteResource(addr, typ, tag string, data string) *C.char {
 }
 
 //export getResource
-func getResource(addr, typ, tag, extraRequest string) *C.char {
+func getResource(storeFileRepoDir, addr, typ, tag, extraRequest string) *C.char {
 	fmt.Printf("confilesystem-go - getResource(): addr = %v, typ = %v, tag = %v\n",
 		addr, typ, tag)
 	fmt.Printf("confilesystem-go - getResource(): extraRequest = %v\n", extraRequest)
@@ -156,7 +160,7 @@ func getResource(addr, typ, tag, extraRequest string) *C.char {
 		}
 	}
 
-	data, err := resourceInstance.GetResource(addr, typ, tag, extraRequest)
+	data, err := resourceInstance.GetResource(storeFileRepoDir, addr, typ, tag, extraRequest)
 	if err != nil {
 		return cgoError(err)
 	}
