@@ -282,6 +282,7 @@ func burnFilesystem(req string) *C.char {
 
 	resMap := make(map[string]interface{})
 	resMap[ResMapKeyOk] = true
+	resMap[ResMapKeyData] = "burn-filesystem"
 
 	res, err := json.Marshal(resMap)
 	if err != nil {
