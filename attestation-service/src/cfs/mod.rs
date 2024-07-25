@@ -64,6 +64,8 @@ pub struct MintFilesystemReq {
     pub meta_tx_request: MetaTxForwardRequest,
     #[serde(rename = "meta_tx_signature")]
     pub meta_tx_signature: String,
+    #[serde(rename = "meta")]
+    pub meta: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -84,6 +86,8 @@ pub struct GetFilesystemResp {
     pub token_id: String,
     #[serde(rename = "token_uri")]
     pub token_uri: String,
+    #[serde(rename = "meta")]
+    pub meta: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

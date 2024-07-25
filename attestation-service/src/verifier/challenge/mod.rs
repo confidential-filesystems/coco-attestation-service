@@ -6,7 +6,7 @@ use super::*;
 use async_trait::async_trait;
 use serde_json::json;
 use sha2::{Digest, Sha384};
-use crate::verifier::types::{RAEvidence, CRPTPayload, expected_hash, verify_crpt, default_authed_res_for_controller, authed_res};
+use crate::verifier::types::{RAEvidence, CRPTPayload, expected_hash, verify_crpt, default_authed_res_for_controller, authed_res, RUNTIME_TEE};
 
 const ENV_CFS_EMULATED_MODE: &str  ="CFS_EMULATED_MODE";
 
@@ -159,7 +159,7 @@ async fn verify_tee_evidence(
                 return Err(anyhow!("Unsupported attestation report: {}", att_report.attester ));
             }
             // verify crp_token
-            return verify_crpt(crp_token, repository).await
+            return verify_crpt(crp_token, repository, is_emulated).await
         }
         None => {
             // should be controller it's self, already checked
@@ -172,6 +172,7 @@ async fn verify_tee_evidence(
 
     // return default CRPTPayload for controller
     Ok(CRPTPayload {
+        runtime: RUNTIME_TEE.to_string(),
         authorized_res: default_authed_res_for_controller(),
         runtime_res: HashMap::new(),
     })

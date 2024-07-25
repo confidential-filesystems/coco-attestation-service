@@ -59,6 +59,7 @@ type MetaTxForwardRequest struct {
 type MintFilesystemReq struct {
 	MetaTxRequest   MetaTxForwardRequest `json:"meta_tx_request"`
 	MetaTxSignature string               `json:"meta_tx_signature"`
+	Meta            string               `json:"meta"`
 }
 
 func toMintFilesystemReq(goReq *MintFilesystemReq) (*request.MintFilesystemReq, error) {
@@ -89,6 +90,7 @@ func toMintFilesystemReq(goReq *MintFilesystemReq) (*request.MintFilesystemReq, 
 	req := &request.MintFilesystemReq{
 		MetaTxRequest:   metaTxRequest,
 		MetaTxSignature: goReq.MetaTxSignature,
+		Meta:            goReq.Meta,
 	}
 
 	return req, nil
@@ -162,6 +164,7 @@ type GetFilesystemResp struct {
 	OwnerAddress   string `json:"owner_address"`
 	TokenId        string `json:"token_id"`
 	TokenUri       string `json:"token_uri"`
+	Meta           string `json:"meta"`
 }
 
 func toGetFilesystemRsp(getFilesystemResp *response.GetFilesystemResp) (*GetFilesystemResp, error) {
@@ -170,6 +173,7 @@ func toGetFilesystemRsp(getFilesystemResp *response.GetFilesystemResp) (*GetFile
 		OwnerAddress:   getFilesystemResp.OwnerAddress,
 		TokenId:        getFilesystemResp.TokenId,
 		TokenUri:       getFilesystemResp.TokenUri,
+		Meta:           getFilesystemResp.Meta,
 	}
 	return rsp, nil
 }
@@ -245,6 +249,7 @@ func toBurnFilesystemReq(goReq *BurnFilesystemReq) (*request.BurnFilesystemReq, 
 	req := &request.BurnFilesystemReq{
 		MetaTxRequest:   metaTxRequest,
 		MetaTxSignature: goReq.MetaTxSignature,
+		Meta:            goReq.Meta,
 	}
 
 	return req, nil

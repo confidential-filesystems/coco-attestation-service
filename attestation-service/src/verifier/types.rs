@@ -11,10 +11,12 @@ use crate::resource::{Repository, ResourceDesc};
 pub const AUTHED_ECSK_RES_FOR_CONTROLLER: &str = "*/ecsk/*";
 pub const AUTHED_IPK_RES_FOR_CONTROLLER: &str = "*/ipk/*";
 pub const AUTHED_CERT_RES_FOR_CONTROLLER: &str = "*/certs/client";
+pub const RUNTIME_TEE: &str = "tee";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CRPTPayload {
     // iat
+    pub runtime: String,
     pub authorized_res: Vec<AuthorizedRes>,
     pub runtime_res: HashMap<String, HashMap<String, HashMap<String, String>>>,
 }
@@ -69,7 +71,7 @@ pub fn parse_crptpayload(crp_token: &String) -> Result<CRPTPayload> {
     }
 }
 
-pub async fn verify_crpt(crp_token: &String, repository: &Box<dyn Repository + Send + Sync>) -> Result<CRPTPayload> {
+pub async fn verify_crpt(crp_token: &String, repository: &Box<dyn Repository + Send + Sync>, is_emulated: bool) -> Result<CRPTPayload> {
     let metadata = Token::decode_metadata(crp_token.as_ref()).map_err(|_| anyhow!("Invalid crp_token!"))?;
     let kid = metadata.key_id().ok_or(anyhow!("Invalid crp_token! No kid"))?;
     info!("ccdata - crp_token: kid = {:?}", kid);
@@ -84,6 +86,9 @@ pub async fn verify_crpt(crp_token: &String, repository: &Box<dyn Repository + S
     let user_addr = parts[0];
     // check res validity
     let crpt_payload = parse_crptpayload(crp_token)?;
+    if crpt_payload.runtime == RUNTIME_TEE && !is_emulated {
+        return Err(anyhow!("Invalid crp_token! Wrong runtime. tee runtime can't be run in vm"));
+    }
     if crpt_payload.authorized_res.is_empty() {
         return Err(anyhow!("Invalid crp_token! Empty authorized res"));
     }
