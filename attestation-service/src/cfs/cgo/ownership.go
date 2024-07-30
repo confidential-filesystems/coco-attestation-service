@@ -90,7 +90,6 @@ func toMintFilesystemReq(goReq *MintFilesystemReq) (*request.MintFilesystemReq, 
 	req := &request.MintFilesystemReq{
 		MetaTxRequest:   metaTxRequest,
 		MetaTxSignature: goReq.MetaTxSignature,
-		Meta:            goReq.Meta,
 	}
 
 	return req, nil
@@ -249,7 +248,6 @@ func toBurnFilesystemReq(goReq *BurnFilesystemReq) (*request.BurnFilesystemReq, 
 	req := &request.BurnFilesystemReq{
 		MetaTxRequest:   metaTxRequest,
 		MetaTxSignature: goReq.MetaTxSignature,
-		Meta:            goReq.Meta,
 	}
 
 	return req, nil
