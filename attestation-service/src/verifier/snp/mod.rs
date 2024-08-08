@@ -18,6 +18,14 @@ use sev::firmware::host::{CertTableEntry, CertType};
 use sha2::{Digest, Sha384};
 use x509_parser::prelude::*;
 
+use crate::verifier::types::{
+    authed_res, default_authed_res_for_controller, expected_hash, verify_crpt, AttReport,
+    CRPTPayload, RAEvidence, RUNTIME_TEE,
+};
+use reqwest::blocking::{get, Response};
+use reqwest::StatusCode;
+use std::collections::HashMap;
+
 #[derive(Serialize, Deserialize)]
 struct SnpEvidence {
     attestation_report: AttestationReport,
@@ -30,6 +38,11 @@ const SNP_SPL_OID: Oid<'static> = oid!(1.3.6 .1 .4 .1 .3704 .1 .3 .3);
 const TEE_SPL_OID: Oid<'static> = oid!(1.3.6 .1 .4 .1 .3704 .1 .3 .2);
 const LOADER_SPL_OID: Oid<'static> = oid!(1.3.6 .1 .4 .1 .3704 .1 .3 .1);
 
+const PROC_TYPE_MILAN: &str = "Milan";
+/// 3rd Gen AMD EPYC Processor (Standard)
+const PROC_TYPE_GENOA: &str = "Genoa";
+/// 4th Gen AMD EPYC Processor (Standard)
+
 #[derive(Debug, Default)]
 pub struct Snp {}
 
@@ -39,29 +52,155 @@ impl Verifier for Snp {
         &self,
         nonce: String,
         attestation: &Attestation,
-        _repository: &Box<dyn Repository + Send + Sync>,
+        repository: &Box<dyn Repository + Send + Sync>,
     ) -> Result<TeeEvidenceParsedClaim> {
-        let tee_evidence = serde_json::from_str::<SnpEvidence>(&attestation.tee_evidence)
+        // let tee_evidence = serde_json::from_str::<SnpEvidence>(&attestation.tee_evidence)
+        //     .context("Deserialize Quote failed.")?;
+
+        // verify_report_signature(&tee_evidence)?;
+
+        // let report = tee_evidence.attestation_report;
+        // if report.version != 2 {
+        //     return Err(anyhow!("Unexpected report version"));
+        // }
+
+        // if report.vmpl != 0 {
+        //     return Err(anyhow!("VMPL Check Failed"));
+        // }
+
+        // let expected_report_data = calculate_expected_report_data(&nonce, &attestation.tee_pubkey);
+        // if report.report_data != expected_report_data {
+        //     return Err(anyhow!("Report Data Mismatch"));
+        // }
+
+        // Ok(parse_tee_evidence(&report))
+
+        let tee_evidence = serde_json::from_str::<RAEvidence>(&attestation.tee_evidence)
             .context("Deserialize Quote failed.")?;
 
-        verify_report_signature(&tee_evidence)?;
+        let mut hasher = Sha384::new();
+        hasher.update(&nonce);
+        hasher.update(&attestation.tee_pubkey.k_mod);
+        hasher.update(&attestation.tee_pubkey.k_exp);
+        let mut hash = [0u8; 48];
+        hash[..48].copy_from_slice(&hasher.finalize());
+        // let reference_report_data =
+        //     base64::engine::general_purpose::STANDARD.encode(hasher.finalize());
 
-        let report = tee_evidence.attestation_report;
-        if report.version != 2 {
-            return Err(anyhow!("Unexpected report version"));
-        }
+        let crpt_payload = verify_tee_evidence(hash, &tee_evidence, repository)
+            .await
+            .context("Evidence's identity verification error.")?;
 
-        if report.vmpl != 0 {
-            return Err(anyhow!("VMPL Check Failed"));
-        }
+        debug!("Evidence<Challenge>: {:?}", tee_evidence);
 
-        let expected_report_data = calculate_expected_report_data(&nonce, &attestation.tee_pubkey);
-        if report.report_data != expected_report_data {
-            return Err(anyhow!("Report Data Mismatch"));
-        }
-
-        Ok(parse_tee_evidence(&report))
+        parse_tee_evidence(&tee_evidence, &crpt_payload)
     }
+}
+
+async fn verify_tee_evidence(
+    reference_report_data: [u8; 48],
+    tee_evidence: &RAEvidence,
+    repository: &Box<dyn Repository + Send + Sync>,
+) -> Result<CRPTPayload> {
+    // Verify the TEE Hardware signature.
+    if tee_evidence.attestation_reports.len() == 0 {
+        return Err(anyhow!("Empty attestation reports!"));
+    }
+    // the first one should be controller attestation
+    if tee_evidence.attestation_reports[0].attester != "controller" {
+        return Err(anyhow!(
+            "Invalid attestation reports! First is not controller's report"
+        ));
+    }
+
+    // check controller report first
+    let controller_att_report = tee_evidence.attestation_reports[0].attestation_report;
+    // TODO: check ld
+    // if controller_att_report.measurement != "controller_ld" {
+    //     warn!("Invalid controller measurement!");
+    //     return Err(anyhow!("Invalid controller measurement!"));
+    // }
+
+    // check report data
+    if tee_evidence.attestation_reports.len() == 1 {
+        // controller it's self, follow rcar flow
+        if controller_att_report.report_data[..48] != reference_report_data {
+            warn!("Controller's self report data verification failed!");
+            return Err(anyhow!("Controller report data verification failed!"));
+        }
+        verify_report_signature(&tee_evidence.attestation_reports[0])?;
+    } else {
+        // report_data should be the hash of the crp_token
+        match &tee_evidence.crp_token {
+            Some(crp_token) => {
+                if controller_att_report.report_data[..48] != expected_hash(crp_token) {
+                    warn!("Controller report data(crp_token hash) verification failed!");
+                    return Err(anyhow!("Controller report data verification failed!"));
+                }
+            }
+            None => {
+                warn!("Invalid controller reports!");
+                return Err(anyhow!("Invalid controller reports!"));
+            }
+        }
+    }
+
+    match &tee_evidence.crp_token {
+        Some(crp_token) => {
+            // check metadata or workload report
+            let att_report = &tee_evidence.attestation_reports[1];
+            verify_report_signature(att_report)?;
+            if att_report.attester == "metadata" {
+                let meta_att_report = att_report.attestation_report;
+                // TODO: check ld
+                // if meta_att_report.measurement != "metadata_ld" {
+                //     warn!("Invalid metadata measurement!");
+                //     return Err(anyhow!("Invalid metadata measurement!"));
+                // }
+
+                // check report data
+                if meta_att_report.report_data[..48] != reference_report_data {
+                    warn!("Metadata report data verification failed!");
+                    return Err(anyhow!("Metadata report data verification failed!"));
+                }
+            } else if att_report.attester == "workload" {
+                let workload_att_report = att_report.attestation_report;
+                // TODO: check ld
+                // if workload_att_report.measurement != "workload_ld" {
+                //     warn!("Invalid workload measurement!");
+                //     return Err(anyhow!("Invalid workload measurement!"));
+                // }
+
+                // check report data
+                if workload_att_report.report_data[..48] != reference_report_data {
+                    warn!("Workload report data verification failed!");
+                    return Err(anyhow!("Workload report data verification failed!"));
+                }
+            } else {
+                warn!("Unsupported attestation report: {}", att_report.attester);
+                return Err(anyhow!(
+                    "Unsupported attestation report: {}",
+                    att_report.attester
+                ));
+            }
+            // verify crp_token
+            return verify_crpt(crp_token, repository, true).await;
+        }
+        None => {
+            // should be controller it's self, already checked
+            if tee_evidence.attestation_reports.len() > 1 {
+                warn!("Invalid attestation reports! No crp_token");
+                return Err(anyhow!("Invalid attestation reports! No crp_token"));
+            }
+        }
+    }
+
+    // return default CRPTPayload for controller
+    Ok(CRPTPayload {
+        runtime: RUNTIME_TEE.to_string(),
+        authorized_res: default_authed_res_for_controller(),
+        runtime_res: HashMap::new(),
+    })
 }
 
 fn get_oid_octets<const N: usize>(
@@ -98,9 +237,40 @@ fn get_oid_int(vcek: &x509_parser::certificate::TbsCertificate, oid: Oid) -> Res
     val_int.as_u8().context("Unexpected data size")
 }
 
-fn verify_report_signature(evidence: &SnpEvidence) -> Result<()> {
+fn verify_report_signature(evidence: &AttReport) -> Result<()> {
+    // verify report signature
+    let sig = ecdsa::EcdsaSig::try_from(&evidence.attestation_report.signature)?;
+    let data = &bincode::serialize(&evidence.attestation_report)?[..=0x29f];
+
+    let mut vcek_data = request_vcek_kds(PROC_TYPE_MILAN, &evidence.attestation_report)?;
+    let mut vcek = x509::X509::from_der(&vcek_data).context("Failed to load type milan VCEK")?;
+
+    let mut verify_milan: bool = false;
+    let mut verify_genoa: bool = false;
+
+    verify_milan = sig
+        .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
+        .context("Signature validation failed milan.")?;
+    if !verify_milan {
+        vcek_data = request_vcek_kds(PROC_TYPE_GENOA, &evidence.attestation_report)?;
+        vcek = x509::X509::from_der(&vcek_data).context("Failed to load type genoa VCEK")?;
+
+        verify_genoa = sig
+            .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
+            .context("Signature validation failed genoa.")?;
+        if !verify_genoa {
+            return Err(anyhow!("Signature validation failed."));
+        }
+    }
+
     // check cert chain
-    let vcek = verify_cert_chain(&evidence.cert_chain)?;
+    let mut proc_type: &str = "";
+    if verify_milan {
+        proc_type = PROC_TYPE_MILAN;
+    } else if verify_genoa {
+        proc_type = PROC_TYPE_GENOA;
+    }
+    let vcek = verify_cert_chain(vcek, proc_type)?;
 
     // OpenSSL bindings do not expose custom extensions
     // Parse the vcek using x509_parser
@@ -135,14 +305,42 @@ fn verify_report_signature(evidence: &SnpEvidence) -> Result<()> {
         return Err(anyhow!("Boot loader verion mismatch"));
     }
 
-    // verify report signature
-    let sig = ecdsa::EcdsaSig::try_from(&evidence.attestation_report.signature)?;
-    let data = &bincode::serialize(&evidence.attestation_report)?[..=0x29f];
-
-    sig.verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
-        .context("Signature validation failed.")?;
-
     Ok(())
+}
+
+// Function to request vcek from KDS. Return vcek in der format.
+fn request_vcek_kds(
+    processor_model: &str,
+    att_report: &AttestationReport,
+) -> Result<Vec<u8>, anyhow::Error> {
+    // KDS URL parameters
+    const KDS_CERT_SITE: &str = "https://kdsintf.amd.com";
+    const KDS_VCEK: &str = "/vcek/v1";
+
+    // Use attestation report to get data for URL
+    let hw_id: String = hex::encode(att_report.chip_id);
+
+    let vcek_url: String = format!(
+        "{KDS_CERT_SITE}{KDS_VCEK}/{}/\
+        {hw_id}?blSPL={:02}&teeSPL={:02}&snpSPL={:02}&ucodeSPL={:02}",
+        processor_model,
+        att_report.reported_tcb.bootloader,
+        att_report.reported_tcb.tee,
+        att_report.reported_tcb.snp,
+        att_report.reported_tcb.microcode
+    );
+
+    // VCEK in DER format
+    let vcek_rsp: Response = get(vcek_url).context("Unable to send request for VCEK")?;
+
+    match vcek_rsp.status() {
+        StatusCode::OK => {
+            let vcek_rsp_bytes: Vec<u8> =
+                vcek_rsp.bytes().context("Unable to parse VCEK")?.to_vec();
+            Ok(vcek_rsp_bytes)
+        }
+        status => Err(anyhow::anyhow!("Unable to fetch VCEK from URL: {status:?}")),
+    }
 }
 
 fn load_milan_cert_chain() -> Result<(x509::X509, x509::X509)> {
@@ -155,14 +353,27 @@ fn load_milan_cert_chain() -> Result<(x509::X509, x509::X509)> {
     Ok((certs[0].clone(), certs[1].clone()))
 }
 
-fn verify_cert_chain(cert_chain: &[CertTableEntry]) -> Result<x509::X509> {
-    let (ask, ark) = load_milan_cert_chain()?;
+fn load_genoa_cert_chain() -> Result<(x509::X509, x509::X509)> {
+    let certs = x509::X509::stack_from_pem(include_bytes!("genoa_ask_ark.pem"))?;
+    if certs.len() != 2 {
+        bail!("Malformed Genoa ASK/ARK");
+    }
 
-    let raw_vcek = cert_chain
-        .iter()
-        .find(|c| c.cert_type == CertType::VCEK)
-        .ok_or_else(|| anyhow!("VCEK not found."))?;
-    let vcek = x509::X509::from_der(raw_vcek.data()).context("Failed to load VCEK")?;
+    // ask, ark
+    Ok((certs[0].clone(), certs[1].clone()))
+}
+
+fn verify_cert_chain(vcek: x509::X509, proc_type: &str) -> Result<x509::X509> {
+    let (mut ask, mut ark) = load_milan_cert_chain()?;
+    if proc_type == PROC_TYPE_GENOA {
+        (ask, ark) = load_genoa_cert_chain()?;
+    }
+
+    // let raw_vcek = cert_chain
+    //     .iter()
+    //     .find(|c| c.cert_type == CertType::VCEK)
+    //     .ok_or_else(|| anyhow!("VCEK not found."))?;
+    // let vcek = x509::X509::from_der(raw_vcek.data()).context("Failed to load VCEK")?;
 
     // ARK -> ARK
     ark.verify(&(ark.public_key().unwrap() as PKey<Public>))
@@ -194,31 +405,42 @@ fn calculate_expected_report_data(nonce: &String, tee_pubkey: &TeePubKey) -> [u8
     hash
 }
 
-fn parse_tee_evidence(report: &AttestationReport) -> TeeEvidenceParsedClaim {
+// fn parse_tee_evidence(report: &AttestationReport) -> TeeEvidenceParsedClaim {
+//     let claims_map = json!({
+//         // policy fields
+//         "policy_abi_major": format!("{}",report.policy.abi_major()),
+//         "policy_abi_minor": format!("{}", report.policy.abi_minor()),
+//         "policy_smt_allowed": format!("{}", report.policy.smt_allowed()),
+//         "policy_migrate_ma": format!("{}", report.policy.migrate_ma_allowed()),
+//         "policy_debug_allowed": format!("{}", report.policy.debug_allowed()),
+//         "policy_single_socket": format!("{}", report.policy.single_socket_required()),
+
+//         // versioning info
+//         "reported_tcb_bootloader": format!("{}", report.reported_tcb.bootloader),
+//         "reported_tcb_tee": format!("{}", report.reported_tcb.tee),
+//         "reported_tcb_snp": format!("{}", report.reported_tcb.snp),
+//         "reported_tcb_microcode": format!("{}", report.reported_tcb.microcode),
+
+//         // platform info
+//         "platform_tsme_enabled": format!("{}", report.plat_info.tsme_enabled()),
+//         "platform_smt_enabled": format!("{}", report.plat_info.smt_enabled()),
+
+//         // measurement
+//         "measurement": format!("{}", base64::engine::general_purpose::STANDARD.encode(report.measurement)),
+//     });
+
+//     claims_map as TeeEvidenceParsedClaim
+// }
+
+fn parse_tee_evidence(
+    _quote: &RAEvidence,
+    crpt_payload: &CRPTPayload,
+) -> Result<TeeEvidenceParsedClaim> {
     let claims_map = json!({
-        // policy fields
-        "policy_abi_major": format!("{}",report.policy.abi_major()),
-        "policy_abi_minor": format!("{}", report.policy.abi_minor()),
-        "policy_smt_allowed": format!("{}", report.policy.smt_allowed()),
-        "policy_migrate_ma": format!("{}", report.policy.migrate_ma_allowed()),
-        "policy_debug_allowed": format!("{}", report.policy.debug_allowed()),
-        "policy_single_socket": format!("{}", report.policy.single_socket_required()),
-
-        // versioning info
-        "reported_tcb_bootloader": format!("{}", report.reported_tcb.bootloader),
-        "reported_tcb_tee": format!("{}", report.reported_tcb.tee),
-        "reported_tcb_snp": format!("{}", report.reported_tcb.snp),
-        "reported_tcb_microcode": format!("{}", report.reported_tcb.microcode),
-
-        // platform info
-        "platform_tsme_enabled": format!("{}", report.plat_info.tsme_enabled()),
-        "platform_smt_enabled": format!("{}", report.plat_info.smt_enabled()),
-
-        // measurement
-        "measurement": format!("{}", base64::engine::general_purpose::STANDARD.encode(report.measurement)),
+        "authorized_res": authed_res(&crpt_payload),
     });
-
-    claims_map as TeeEvidenceParsedClaim
+    debug!("EvidenceParsedClaim<Challenge>: {:?}", claims_map);
+    Ok(claims_map as TeeEvidenceParsedClaim)
 }
 
 #[cfg(test)]
