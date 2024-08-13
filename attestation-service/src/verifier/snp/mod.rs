@@ -251,17 +251,17 @@ fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     verify_genoa = sig
         .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
         .context("Signature validation failed genoa.")?;
-    if !verify_genoa {
-        vcek_data = request_vcek_kds(PROC_TYPE_MILAN, &evidence.attestation_report)?;
-        vcek = x509::X509::from_der(&vcek_data).context("Failed to load type milan VCEK")?;
-
-        verify_milan = sig
-            .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
-            .context("Signature validation failed milan.")?;
-        if !verify_milan {
-            return Err(anyhow!("Signature validation failed."));
-        }
-    }
+    // if !verify_genoa {
+    //     vcek_data = request_vcek_kds(PROC_TYPE_MILAN, &evidence.attestation_report)?;
+    //     vcek = x509::X509::from_der(&vcek_data).context("Failed to load type milan VCEK")?;
+    //
+    //     verify_milan = sig
+    //         .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
+    //         .context("Signature validation failed milan.")?;
+    //     if !verify_milan {
+    //         return Err(anyhow!("Signature validation failed."));
+    //     }
+    // }
 
     // check cert chain
     let mut proc_type: &str = "";
@@ -329,7 +329,7 @@ fn request_vcek_kds(
         att_report.reported_tcb.snp,
         att_report.reported_tcb.microcode
     );
-
+    log::info!("confilesystem request_vcek_kds processor_model: {}", processor_model);
     // VCEK in DER format
     let vcek_rsp: Response = get(vcek_url.clone()).context("Unable to send request for VCEK")?;
 
