@@ -242,23 +242,23 @@ fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     let sig = ecdsa::EcdsaSig::try_from(&evidence.attestation_report.signature)?;
     let data = &bincode::serialize(&evidence.attestation_report)?[..=0x29f];
 
-    let mut vcek_data = request_vcek_kds(PROC_TYPE_MILAN, &evidence.attestation_report)?;
-    let mut vcek = x509::X509::from_der(&vcek_data).context("Failed to load type milan VCEK")?;
+    let mut vcek_data = request_vcek_kds(PROC_TYPE_GENOA, &evidence.attestation_report)?;
+    let mut vcek = x509::X509::from_der(&vcek_data).context("Failed to load type genoa VCEK")?;
 
     let mut verify_milan: bool = false;
     let mut verify_genoa: bool = false;
 
-    verify_milan = sig
+    verify_genoa = sig
         .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
-        .context("Signature validation failed milan.")?;
-    if !verify_milan {
-        vcek_data = request_vcek_kds(PROC_TYPE_GENOA, &evidence.attestation_report)?;
-        vcek = x509::X509::from_der(&vcek_data).context("Failed to load type genoa VCEK")?;
+        .context("Signature validation failed genoa.")?;
+    if !verify_genoa {
+        vcek_data = request_vcek_kds(PROC_TYPE_MILAN, &evidence.attestation_report)?;
+        vcek = x509::X509::from_der(&vcek_data).context("Failed to load type milan VCEK")?;
 
-        verify_genoa = sig
+        verify_milan = sig
             .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
-            .context("Signature validation failed genoa.")?;
-        if !verify_genoa {
+            .context("Signature validation failed milan.")?;
+        if !verify_milan {
             return Err(anyhow!("Signature validation failed."));
         }
     }
