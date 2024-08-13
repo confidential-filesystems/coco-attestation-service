@@ -331,7 +331,7 @@ fn request_vcek_kds(
     );
 
     // VCEK in DER format
-    let vcek_rsp: Response = get(vcek_url).context("Unable to send request for VCEK")?;
+    let vcek_rsp: Response = get(vcek_url.clone()).context("Unable to send request for VCEK")?;
 
     match vcek_rsp.status() {
         StatusCode::OK => {
@@ -339,7 +339,7 @@ fn request_vcek_kds(
                 vcek_rsp.bytes().context("Unable to parse VCEK")?.to_vec();
             Ok(vcek_rsp_bytes)
         }
-        status => Err(anyhow::anyhow!("Unable to fetch VCEK from URL: {status:?}")),
+        status => Err(anyhow::anyhow!("Unable to fetch VCEK from URL: {vcek_url:?} {status:?}")),
     }
 }
 
