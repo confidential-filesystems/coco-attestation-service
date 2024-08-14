@@ -128,7 +128,6 @@ async fn verify_tee_evidence(
             warn!("Controller's self report data verification failed!");
             return Err(anyhow!("Controller report data verification failed!"));
         }
-        verify_report_signature(&tee_evidence.attestation_reports[0])?;
     } else {
         // report_data should be the hash of the crp_token
         match &tee_evidence.crp_token {
@@ -144,6 +143,7 @@ async fn verify_tee_evidence(
             }
         }
     }
+    verify_report_signature(&tee_evidence.attestation_reports[0])?;
 
     match &tee_evidence.crp_token {
         Some(crp_token) => {
@@ -237,7 +237,7 @@ fn get_oid_int(vcek: &x509_parser::certificate::TbsCertificate, oid: Oid) -> Res
     val_int.as_u8().context("Unexpected data size")
 }
 
-fn verify_report_signature(evidence: &AttReport) -> Result<()> {
+pub fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     // verify report signature
     let sig = ecdsa::EcdsaSig::try_from(&evidence.attestation_report.signature)?;
     let data = &bincode::serialize(&evidence.attestation_report)?[..=0x29f];

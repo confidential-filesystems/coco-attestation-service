@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use serde_json::json;
 use sha2::{Digest, Sha384};
 use crate::verifier::types::{RAEvidence, CRPTPayload, expected_hash, verify_crpt, default_authed_res_for_controller, authed_res, RUNTIME_TEE};
-
+use crate::verifier::snp::{verify_report_signature};
 const ENV_CFS_EMULATED_MODE: &str  ="CFS_EMULATED_MODE";
 
 pub const ENV_CFS_SECURITY_ID: &str  ="CFS_SECURITY_ID";
@@ -78,40 +78,45 @@ async fn verify_tee_evidence(
 
     // check controller report first
     let controller_att_report = tee_evidence.attestation_reports[0].attestation_report;
-    if is_emulated {
-        // check mock ld
-        let controller_id = env::var(ENV_CFS_CONTROLLER_ID).unwrap_or_else(|_| CFS_CONTROLLER_ID_DEFAULT.to_string());
-        if controller_att_report.measurement != expected_hash(&controller_id) {
+    // check report data
+    if tee_evidence.attestation_reports.len() == 1 {
+        // controller it's self, follow rcar flow
+        if controller_att_report.report_data[..48] != reference_report_data {
+            warn!("Controller's self report data verification failed!");
+            return Err(anyhow!("Controller report data verification failed!"));
+        }
+    } else {
+        // report_data should be the hash of the crp_token
+        match &tee_evidence.crp_token {
+            Some(crp_token) => {
+                if controller_att_report.report_data[..48] != expected_hash(crp_token) {
+                    warn!("Controller report data(crp_token hash) verification failed!");
+                    return Err(anyhow!("Controller report data verification failed!"));
+                }
+            }
+            None => {
+                warn!("Invalid controller reports!");
+                return Err(anyhow!("Invalid controller reports!"));
+            }
+        }
+    }
+
+    // is_emulated: true, allow controller run in emulated mode
+    let controller_id = env::var(ENV_CFS_CONTROLLER_ID).unwrap_or_else(|_| CFS_CONTROLLER_ID_DEFAULT.to_string());
+    if controller_att_report.measurement == expected_hash(&controller_id) {
+        info!("Evidence<Challenge>: controller in emulated mode");
+        if !is_emulated {
+            warn!("Invalid controller, should be in tee!");
+            return Err(anyhow!("Invalid controller, should be in tee!"));
+        }
+    } else {
+        // controller should be in tee mode currently
+        info!("Evidence<Challenge>: controller should be in tee mode");
+        if tee_evidence.attestation_reports.len() == 1 {
             warn!("Invalid controller measurement!");
             return Err(anyhow!("Invalid controller measurement!"));
         }
-        // check report data
-        if tee_evidence.attestation_reports.len() == 1 {
-            // controller it's self, follow rcar flow
-            if controller_att_report.report_data[..48] != reference_report_data {
-                warn!("Controller's self report data verification failed!");
-                return Err(anyhow!("Controller report data verification failed!"));
-            }
-        } else {
-            // report_data should be the hash of the crp_token
-            match &tee_evidence.crp_token {
-                Some(crp_token) => {
-                    if controller_att_report.report_data[..48] != expected_hash(crp_token) {
-                        warn!("Controller report data(crp_token hash) verification failed!");
-                        return Err(anyhow!("Controller report data verification failed!"));
-                    }
-                }
-                None => {
-                    warn!("Invalid controller reports!");
-                    return Err(anyhow!("Invalid controller reports!"));
-                }
-            }
-        }
-    } else {
-        // controller in CVM
-        // TODO snp attest check
-        info!("Evidence<Challenge>: controller in CVM not implemented!");
-        return Err(anyhow!("Not implemented!"))
+        verify_report_signature(&tee_evidence.attestation_reports[0])?;
     }
 
     match &tee_evidence.crp_token {
@@ -137,22 +142,16 @@ async fn verify_tee_evidence(
                 }
             } else if att_report.attester == "workload" {
                 let workload_att_report = att_report.attestation_report;
-                if is_emulated || workload_att_report.guest_svn == EMULATED_GUEST_SVN {
-                    // check mock ld
-                    let workload_id = env::var(ENV_CFS_WORKLOAD_ID).unwrap_or_else(|_| CFS_WORKLOAD_ID_DEFAULT.to_string());
-                    if workload_att_report.measurement != expected_hash(&workload_id) {
-                        warn!("Invalid workload measurement!");
-                        return Err(anyhow!("Invalid workload measurement!"));
-                    }
-                    // check report data
-                    if workload_att_report.report_data[..48] != reference_report_data {
-                        warn!("Workload report data verification failed!");
-                        return Err(anyhow!("Workload report data verification failed!"));
-                    }
-                } else {
-                    // workload in CVM
-                    // TODO snp attest check
-                    return Err(anyhow!("Not implemented!"))
+                // check mock ld
+                let workload_id = env::var(ENV_CFS_WORKLOAD_ID).unwrap_or_else(|_| CFS_WORKLOAD_ID_DEFAULT.to_string());
+                if workload_att_report.measurement != expected_hash(&workload_id) {
+                    warn!("Invalid workload measurement!");
+                    return Err(anyhow!("Invalid workload measurement!"));
+                }
+                // check report data
+                if workload_att_report.report_data[..48] != reference_report_data {
+                    warn!("Workload report data verification failed!");
+                    return Err(anyhow!("Workload report data verification failed!"));
                 }
             } else {
                 warn!("Unsupported attestation report: {}", att_report.attester);
