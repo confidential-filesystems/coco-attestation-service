@@ -91,7 +91,7 @@ impl Verifier for Snp {
             .await
             .context("Evidence's identity verification error.")?;
 
-        debug!("Evidence<Challenge>: {:?}", tee_evidence);
+        debug!("Evidence<Snp>: {:?}", tee_evidence);
 
         parse_tee_evidence(&tee_evidence, &crpt_payload)
     }
@@ -124,6 +124,12 @@ async fn verify_tee_evidence(
     // check report data
     if tee_evidence.attestation_reports.len() == 1 {
         // controller it's self, follow rcar flow
+        if controller_att_report.version != 2 {
+            return Err(anyhow!("Unexpected Controller report version"));
+        }
+        if controller_att_report.vmpl != 0 {
+            return Err(anyhow!("Controller VMPL Check Failed"));
+        }
         if controller_att_report.report_data[..48] != reference_report_data {
             warn!("Controller's self report data verification failed!");
             return Err(anyhow!("Controller report data verification failed!"));
@@ -157,7 +163,12 @@ async fn verify_tee_evidence(
                 //     warn!("Invalid metadata measurement!");
                 //     return Err(anyhow!("Invalid metadata measurement!"));
                 // }
-
+                if meta_att_report.version != 2 {
+                    return Err(anyhow!("Unexpected Metadata report version"));
+                }
+                if meta_att_report.vmpl != 0 {
+                    return Err(anyhow!("Metadata VMPL Check Failed"));
+                }
                 // check report data
                 if meta_att_report.report_data[..48] != reference_report_data {
                     warn!("Metadata report data verification failed!");
@@ -170,7 +181,12 @@ async fn verify_tee_evidence(
                 //     warn!("Invalid workload measurement!");
                 //     return Err(anyhow!("Invalid workload measurement!"));
                 // }
-
+                if workload_att_report.version != 2 {
+                    return Err(anyhow!("Unexpected Workload report version"));
+                }
+                if workload_att_report.vmpl != 0 {
+                    return Err(anyhow!("Workload VMPL Check Failed"));
+                }
                 // check report data
                 if workload_att_report.report_data[..48] != reference_report_data {
                     warn!("Workload report data verification failed!");
@@ -425,7 +441,7 @@ fn parse_tee_evidence(
     let claims_map = json!({
         "authorized_res": authed_res(&crpt_payload),
     });
-    debug!("EvidenceParsedClaim<Challenge>: {:?}", claims_map);
+    debug!("EvidenceParsedClaim<Snp>: {:?}", claims_map);
     Ok(claims_map as TeeEvidenceParsedClaim)
 }
 
