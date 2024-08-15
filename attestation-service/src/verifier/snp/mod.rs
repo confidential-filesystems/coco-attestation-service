@@ -242,35 +242,12 @@ pub fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     let sig = ecdsa::EcdsaSig::try_from(&evidence.attestation_report.signature)?;
     let data = &bincode::serialize(&evidence.attestation_report)?[..=0x29f];
 
-    let mut vcek_data = request_vcek_kds(PROC_TYPE_GENOA, &evidence.attestation_report)?;
-    let mut vcek = x509::X509::from_der(&vcek_data).context("Failed to load type genoa VCEK")?;
-
-    let mut verify_milan: bool = false;
-    let mut verify_genoa: bool = false;
-
-    verify_genoa = sig
-        .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
-        .context("Signature validation failed genoa.")?;
-    // if !verify_genoa {
-    //     vcek_data = request_vcek_kds(PROC_TYPE_MILAN, &evidence.attestation_report)?;
-    //     vcek = x509::X509::from_der(&vcek_data).context("Failed to load type milan VCEK")?;
-    //
-    //     verify_milan = sig
-    //         .verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
-    //         .context("Signature validation failed milan.")?;
-    //     if !verify_milan {
-    //         return Err(anyhow!("Signature validation failed."));
-    //     }
-    // }
-
-    // check cert chain
-    let mut proc_type: &str = "";
-    if verify_milan {
-        proc_type = PROC_TYPE_MILAN;
-    } else if verify_genoa {
-        proc_type = PROC_TYPE_GENOA;
+    // verify genoa first
+    let mut verify_result = verify(PROC_TYPE_GENOA, &evidence, &sig, data);
+    if verify_result.is_err() {
+        verify_result = verify(PROC_TYPE_MILAN, &evidence, &sig, data);
     }
-    let vcek = verify_cert_chain(vcek, proc_type)?;
+    let vcek = verify_result?;
 
     // OpenSSL bindings do not expose custom extensions
     // Parse the vcek using x509_parser
@@ -306,6 +283,15 @@ pub fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn verify(processor_model: &str, evidence: &AttReport, sig: &ecdsa::EcdsaSig, data: &[u8]) -> Result<x509::X509> {
+    let vcek_data = request_vcek_kds(processor_model, &evidence.attestation_report)?;
+    let mut vcek = x509::X509::from_der(&vcek_data).context(format!("Failed to load type {} VCEK", processor_model))?;
+    sig.verify(data, EcKey::try_from(vcek.public_key()?)?.as_ref())
+        .context(format!("Signature validation failed {}", processor_model))?;
+    vcek = verify_cert_chain(vcek, processor_model)?;
+    Ok(vcek)
 }
 
 // Function to request vcek from KDS. Return vcek in der format.
