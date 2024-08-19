@@ -11,6 +11,7 @@ use crate::resource::{Repository, ResourceDesc};
 pub const AUTHED_ECSK_RES_FOR_CONTROLLER: &str = "*/ecsk/*";
 pub const AUTHED_IPK_RES_FOR_CONTROLLER: &str = "*/ipk/*";
 pub const AUTHED_CERT_RES_FOR_CONTROLLER: &str = "*/certs/client";
+pub const AUTHED_FILESYSTEM_RES_FOR_CONTROLLER: &str = "ownership/filesystems/*";
 pub const RUNTIME_TEE: &str = "tee";
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -141,6 +142,9 @@ pub fn default_authed_res_for_controller() -> Vec<AuthorizedRes> {
     }, AuthorizedRes {
         exp: 0,
         res: AUTHED_CERT_RES_FOR_CONTROLLER.to_string(),
+    }, AuthorizedRes {
+        exp: 0,
+        res: AUTHED_FILESYSTEM_RES_FOR_CONTROLLER.to_string(),
     }];
 }
 
