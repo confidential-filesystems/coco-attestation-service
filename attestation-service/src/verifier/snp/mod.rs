@@ -18,6 +18,7 @@ use sev::firmware::host::{CertTableEntry, CertType};
 use sha2::{Digest, Sha384, Sha256};
 use x509_parser::prelude::*;
 use tokio::fs;
+use std::env;
 use std::path::Path;
 
 use crate::verifier::types::{
@@ -45,6 +46,9 @@ const PROC_TYPE_MILAN: &str = "Milan";
 const PROC_TYPE_GENOA: &str = "Genoa";
 /// 4th Gen AMD EPYC Processor (Standard)
 const CERT_STORAGE_PATH: &str = "/run/as/certs/";
+const ENV_CFS_DISABLE_MEASUREMENT_CHECK: &str  ="CFS_DISABLE_MEASUREMENT_CHECK";
+const ENV_CFS_MEASUREMENT_SERVER: &str  ="CFS_MEASUREMENT_SERVER";
+const MEASUREMENT_SERVER: &str = "https://github.com/confidential-filesystems/filesystem-measurement/blob/main/measurements";
 
 #[derive(Debug, Default)]
 pub struct Snp {}
@@ -119,11 +123,7 @@ async fn verify_tee_evidence(
 
     // check controller report first
     let controller_att_report = tee_evidence.attestation_reports[0].attestation_report;
-    // TODO: check ld
-    // if controller_att_report.measurement != "controller_ld" {
-    //     warn!("Invalid controller measurement!");
-    //     return Err(anyhow!("Invalid controller measurement!"));
-    // }
+    check_measurement(&controller_att_report)?;
 
     // check report data
     if tee_evidence.attestation_reports.len() == 1 {
@@ -162,7 +162,7 @@ async fn verify_tee_evidence(
             verify_report_signature(att_report)?;
             if att_report.attester == "metadata" {
                 let meta_att_report = att_report.attestation_report;
-                // TODO: check ld
+                check_measurement(&meta_att_report)?;
                 // if meta_att_report.measurement != "metadata_ld" {
                 //     warn!("Invalid metadata measurement!");
                 //     return Err(anyhow!("Invalid metadata measurement!"));
@@ -223,6 +223,28 @@ async fn verify_tee_evidence(
     })
 }
 
+fn check_measurement(att_report: &AttestationReport) -> Result<()> {
+    let disable_measurement_check = env::var(ENV_CFS_DISABLE_MEASUREMENT_CHECK).unwrap_or_else(|_| "false".to_string()) == "true";
+    if disable_measurement_check {
+        log::info!("confilesystem disable measurement check");
+        return Ok(());
+    }
+
+    let m_str: String = hex::encode(att_report.measurement);
+    // get measurement server url from env
+    let measurement_server_url = env::var(ENV_CFS_MEASUREMENT_SERVER).unwrap_or_else(|_| MEASUREMENT_SERVER.to_string());
+    let m_url: String = format!("{}/{}", measurement_server_url, m_str);
+    log::info!("confilesystem check measurement url: {}", m_url.clone());
+    let response = get(m_url).context("Unable to send request for measurement")?;
+    match response.status() {
+        StatusCode::OK => {
+            log::info!("confilesystem measurement is ok");
+            Ok(())
+        }
+        status => return Err(anyhow::anyhow!("Invalid controller measurement!")),
+    }
+}
+
 fn get_oid_octets<const N: usize>(
     vcek: &x509_parser::certificate::TbsCertificate,
     oid: Oid,
@@ -265,6 +287,7 @@ pub fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     // verify genoa first
     let mut verify_result = verify(PROC_TYPE_GENOA, &evidence, &sig, data);
     if verify_result.is_err() {
+        log::info!("verify genoa failed: {:?}", verify_result);
         verify_result = verify(PROC_TYPE_MILAN, &evidence, &sig, data);
     }
     let vcek = verify_result?;
