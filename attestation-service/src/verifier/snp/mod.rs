@@ -15,8 +15,10 @@ use openssl::{
 use serde_json::json;
 use sev::firmware::guest::AttestationReport;
 use sev::firmware::host::{CertTableEntry, CertType};
-use sha2::{Digest, Sha384};
+use sha2::{Digest, Sha384, Sha256};
 use x509_parser::prelude::*;
+use tokio::fs;
+use std::path::Path;
 
 use crate::verifier::types::{
     authed_res, default_authed_res_for_controller, expected_hash, verify_crpt, AttReport,
@@ -42,6 +44,7 @@ const PROC_TYPE_MILAN: &str = "Milan";
 /// 3rd Gen AMD EPYC Processor (Standard)
 const PROC_TYPE_GENOA: &str = "Genoa";
 /// 4th Gen AMD EPYC Processor (Standard)
+const CERT_STORAGE_PATH: &str = "/run/as/certs/";
 
 #[derive(Debug, Default)]
 pub struct Snp {}
@@ -74,6 +77,7 @@ impl Verifier for Snp {
         // }
 
         // Ok(parse_tee_evidence(&report))
+        fs::create_dir_all(CERT_STORAGE_PATH).await?;
 
         let tee_evidence = serde_json::from_str::<RAEvidence>(&attestation.tee_evidence)
             .context("Deserialize Quote failed.")?;
@@ -332,6 +336,11 @@ fn request_vcek_kds(
         att_report.reported_tcb.microcode
     );
     log::info!("confilesystem request_vcek_kds processor_model: {}", processor_model);
+    if let Some(res) = check_local(vcek_url.clone().as_str())? {
+        log::info!("confilesystem request_vcek_kds from cache");
+        return Ok(res);
+    }
+
     // VCEK in DER format
     let vcek_rsp: Response = get(vcek_url.clone()).context("Unable to send request for VCEK")?;
 
@@ -339,9 +348,28 @@ fn request_vcek_kds(
         StatusCode::OK => {
             let vcek_rsp_bytes: Vec<u8> =
                 vcek_rsp.bytes().context("Unable to parse VCEK")?.to_vec();
+            let path = get_filepath(vcek_url.clone().as_str());
+            let _ = std::fs::write(path, &vcek_rsp_bytes);
+            log::info!("confilesystem cache vcek for {:?}", vcek_url);
             Ok(vcek_rsp_bytes)
         }
         status => Err(anyhow::anyhow!("Unable to fetch VCEK from URL: {vcek_url:?} {status:?}")),
+    }
+}
+fn get_filepath(uri: &str) -> String {
+    let mut sha256 = Sha256::new();
+    sha256.update(uri.as_bytes());
+    format!("{}/{:x}", CERT_STORAGE_PATH, sha256.finalize())
+}
+
+fn check_local(uri: &str) -> Result<Option<Vec<u8>>> {
+    let file_path = get_filepath(uri);
+    match Path::new(&file_path).exists() {
+        true => {
+            let contents = std::fs::read(&file_path).unwrap();
+            Ok(Some(contents))
+        },
+        false => Ok(None),
     }
 }
 
