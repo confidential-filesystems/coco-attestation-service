@@ -123,7 +123,6 @@ async fn verify_tee_evidence(
 
     // check controller report first
     let controller_att_report = tee_evidence.attestation_reports[0].attestation_report;
-    check_measurement(&controller_att_report)?;
 
     // check report data
     if tee_evidence.attestation_reports.len() == 1 {
@@ -153,20 +152,15 @@ async fn verify_tee_evidence(
             }
         }
     }
+    check_measurement(&controller_att_report)?;
     verify_report_signature(&tee_evidence.attestation_reports[0])?;
 
     match &tee_evidence.crp_token {
         Some(crp_token) => {
             // check metadata or workload report
             let att_report = &tee_evidence.attestation_reports[1];
-            verify_report_signature(att_report)?;
             if att_report.attester == "metadata" {
                 let meta_att_report = att_report.attestation_report;
-                check_measurement(&meta_att_report)?;
-                // if meta_att_report.measurement != "metadata_ld" {
-                //     warn!("Invalid metadata measurement!");
-                //     return Err(anyhow!("Invalid metadata measurement!"));
-                // }
                 if meta_att_report.version != 2 {
                     return Err(anyhow!("Unexpected Metadata report version"));
                 }
@@ -178,13 +172,10 @@ async fn verify_tee_evidence(
                     warn!("Metadata report data verification failed!");
                     return Err(anyhow!("Metadata report data verification failed!"));
                 }
+                check_measurement(&meta_att_report)?;
+                verify_report_signature(att_report)?;
             } else if att_report.attester == "workload" {
                 let workload_att_report = att_report.attestation_report;
-                // TODO: check ld
-                // if workload_att_report.measurement != "workload_ld" {
-                //     warn!("Invalid workload measurement!");
-                //     return Err(anyhow!("Invalid workload measurement!"));
-                // }
                 if workload_att_report.version != 2 {
                     return Err(anyhow!("Unexpected Workload report version"));
                 }
@@ -196,6 +187,8 @@ async fn verify_tee_evidence(
                     warn!("Workload report data verification failed!");
                     return Err(anyhow!("Workload report data verification failed!"));
                 }
+                check_measurement(&workload_att_report)?;
+                verify_report_signature(att_report)?;
             } else {
                 warn!("Unsupported attestation report: {}", att_report.attester);
                 return Err(anyhow!(
@@ -241,7 +234,10 @@ fn check_measurement(att_report: &AttestationReport) -> Result<()> {
             log::info!("confilesystem measurement is ok");
             Ok(())
         }
-        status => return Err(anyhow::anyhow!("Invalid controller measurement!")),
+        status => {
+            log::warn!("confilesystem invalid measurement");
+            return Err(anyhow::anyhow!("Invalid measurement!"))
+        },
     }
 }
 
