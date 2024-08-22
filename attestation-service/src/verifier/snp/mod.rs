@@ -279,6 +279,7 @@ pub fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     // verify report signature
     let sig = ecdsa::EcdsaSig::try_from(&evidence.attestation_report.signature)?;
     let data = &bincode::serialize(&evidence.attestation_report)?[..=0x29f];
+    log::info!("report sig data: {:?}", data);
 
     // verify genoa first
     let mut verify_result = verify(PROC_TYPE_GENOA, &evidence, &sig, data);
