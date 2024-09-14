@@ -12,7 +12,7 @@ import (
 
 var (
 	config = Config{
-		StorageType: ResourceStorageTypeFile,
+		StorageType: ResourceStorageTypeDb,
 	}
 
 	resourceInstance Resource = nil
@@ -50,8 +50,7 @@ func initKMS(storageType string, storeFileRepoDir string) *C.char {
 
 //export setResource
 func setResource(storeFileRepoDir, addr, typ, tag string, data string) *C.char {
-	fmt.Printf("confilesystem-go - setResource(): addr = %v, typ = %v, tag = %v, data = %v\n",
-		addr, typ, tag, data)
+	fmt.Printf("confilesystem-go - setResource(): addr = %v, typ = %v, tag = %v\n", addr, typ, tag, data)
 
 	/*
 	   // POST ownership/filesystems/:name
@@ -88,8 +87,7 @@ func setResource(storeFileRepoDir, addr, typ, tag string, data string) *C.char {
 
 //export deleteResource
 func deleteResource(storeFileRepoDir, addr, typ, tag string, data string) *C.char {
-	fmt.Printf("confilesystem-go - deleteResource(): addr = %v, typ = %v, tag = %v, data = %v\n",
-		addr, typ, tag, data)
+	fmt.Printf("confilesystem-go - deleteResource(): addr = %v, typ = %v, tag = %v\n", addr, typ, tag)
 
 	/*
 	   // DELETE ownership/filesystems/:name
@@ -126,9 +124,8 @@ func deleteResource(storeFileRepoDir, addr, typ, tag string, data string) *C.cha
 
 //export getResource
 func getResource(storeFileRepoDir, addr, typ, tag, extraRequest string) *C.char {
-	fmt.Printf("confilesystem-go - getResource(): addr = %v, typ = %v, tag = %v\n",
-		addr, typ, tag)
-	fmt.Printf("confilesystem-go - getResource(): extraRequest = %v\n", extraRequest)
+	fmt.Printf("confilesystem-go - getResource(): addr = %v, typ = %v, tag = %v, extraRequest = %v\n",
+		addr, typ, tag, extraRequest)
 
 	/*
 		// GET ownership/filesystems/:name
@@ -183,10 +180,8 @@ func verifySeeds(seeds string) *C.char {
 		return cgoError(errors.New("seeds is empty"))
 	}
 	kl, err := resource.NewKeyLoad(seeds)
-	fmt.Printf("confilesystem-go - verifySeeds(): seeds = %v\n", seeds)
-	fmt.Printf("confilesystem-go - verifySeeds(): kl = %v\n", kl)
-	fmt.Printf("confilesystem-go - verifySeeds(): err = %v\n", err)
 	if err != nil {
+		fmt.Printf("confilesystem-go - verifySeeds(): err = %v\n", err)
 		return cgoError(err)
 	}
 	if !kl.Valid() {

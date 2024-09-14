@@ -43,6 +43,7 @@ fn real_main() -> Result<(), String> {
                 "util.go",
                 "ownership.go",
                 "resource.go",
+                "db.go",
                 "file.go",
                 "kms.go",
                 "cfs.go",

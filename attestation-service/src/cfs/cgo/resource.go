@@ -25,7 +25,7 @@ func NewResource(config Config) (Resource, error) {
 	case ResourceStorageTypeFile:
 		return NewFile(config)
 	case ResourceStorageTypeDb:
-		return nil, fmt.Errorf("ResourceStorageTypeDb: Not implement")
+		return NewDB(config)
 	}
 
 	return nil, fmt.Errorf("Config: Not support")
