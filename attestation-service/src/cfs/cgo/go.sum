@@ -105,8 +105,8 @@ github.com/cloudflare/cloudflare-go v0.10.2-0.20190916151808-a80f83b9add9/go.mod
 github.com/cloudflare/cloudflare-go v0.14.0/go.mod h1:EnwdgGMaFOruiPZRFSgn+TsQ3hQ7C/YWzIGLeu5c304=
 github.com/confidential-filesystems/filesystem-contracts/lib v0.0.0-20240729080730-dcaf0b93c7a3 h1:cgX0x9EYkXW0Ot0G6Qw7QslDQSJO3ecM3NP67M9JXoM=
 github.com/confidential-filesystems/filesystem-contracts/lib v0.0.0-20240729080730-dcaf0b93c7a3/go.mod h1:rhqzjZ0qJ/DBt0AgFmJGI5diHDiqm7QbQZxkSuOE9aM=
-github.com/confidential-filesystems/filesystem-ownership v0.0.0-20240914103132-8a835ee10190 h1:osbjhpvzTFR8dcAv7Ep+boDCKFAB9CKn2rzRy7W+tfo=
-github.com/confidential-filesystems/filesystem-ownership v0.0.0-20240914103132-8a835ee10190/go.mod h1:dpGo/g7ndO8RydE4UF/RIPyTXCIq6yQW8ku9Z96Ni0w=
+github.com/confidential-filesystems/filesystem-ownership v0.0.0-20240918040651-ebf350dd0717 h1:TTcnIxoKxlq10k88bW1N8vCwSd4388x7hUbdxx1WqBA=
+github.com/confidential-filesystems/filesystem-ownership v0.0.0-20240918040651-ebf350dd0717/go.mod h1:dpGo/g7ndO8RydE4UF/RIPyTXCIq6yQW8ku9Z96Ni0w=
 github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240912082611-a54f52d3548d h1:wSckAuXnbluaKHRgJG+LBdO6xWSAYKitWOqOwVNQNrI=
 github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240912082611-a54f52d3548d/go.mod h1:YlK075+rBxJmMlgFYM+w+29ycYjrsPGe41Xyyq3NWe0=
 github.com/consensys/bavard v0.1.8-0.20210406032232-f3452dc9b572/go.mod h1:Bpd0/3mZuaj6Sj+PqrmIquiOKy397AKGThQPaGzNXAQ=
