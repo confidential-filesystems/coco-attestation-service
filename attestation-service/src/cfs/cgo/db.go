@@ -28,11 +28,11 @@ func (d *DB) SetResource(_, addr, typ, tag string, data []byte) error {
 	return utils.SetResource(ctx, addr, typ, tag, data)
 }
 
-func (d *DB) DeleteResource(_, addr, typ, tag string) error {
+func (d *DB) DeleteResource(_, addr, typ, tag string, extraRequest string) error {
 	fmt.Printf("confilesystem-go - DB.DeleteResource(): addr = %v, typ = %v, tag = %v\n", addr, typ, tag)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultCtxTimeout)
 	defer cancel()
-	return utils.DeleteResource(ctx, addr, typ, tag)
+	return utils.DeleteResource(ctx, addr, typ, tag, extraRequest)
 }
 
 func (d *DB) GetResource(_, addr, typ, tag, extraRequest string) ([]byte, error) {

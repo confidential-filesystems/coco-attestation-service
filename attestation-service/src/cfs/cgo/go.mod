@@ -5,8 +5,8 @@ go 1.22.0
 toolchain go1.22.5
 
 require (
-	github.com/confidential-filesystems/filesystem-ownership v0.0.0-20240918040651-ebf350dd0717
-	github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240912082611-a54f52d3548d
+	github.com/confidential-filesystems/filesystem-ownership v0.0.0-20240923083207-514175f88f4e
+	github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240923092433-3da4fc3a0c77
 	github.com/ethereum/go-ethereum v1.10.17
 )
 
@@ -54,7 +54,6 @@ require (
 	github.com/prometheus/tsdb v0.7.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rjeczalik/notify v0.9.1 // indirect
-	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
@@ -95,7 +94,4 @@ require (
 	gorm.io/gorm v1.25.10 // indirect
 )
 
-replace (
-	github.com/containers/skopeo v1.14.2 => github.com/confidential-filesystems/containers-skopeo v1.14.3-0.20240620101228-3d3d33f1b087
-	github.com/ethereum/go-ethereum v1.10.17 => github.com/ethereum/go-ethereum v1.9.9
-)
+replace github.com/ethereum/go-ethereum v1.10.17 => github.com/ethereum/go-ethereum v1.9.9

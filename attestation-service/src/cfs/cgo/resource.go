@@ -11,7 +11,7 @@ const (
 
 type Resource interface {
 	SetResource(repoDir, addr, typ, tag string, data []byte) error
-	DeleteResource(repoDir, addr, typ, tag string) error
+	DeleteResource(repoDir, addr, typ, tag string, extraRequest string) error
 	GetResource(repoDir, addr, typ, tag, extraRequest string) ([]byte, error)
 }
 

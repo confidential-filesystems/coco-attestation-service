@@ -105,7 +105,7 @@ func deleteResource(storeFileRepoDir, addr, typ, tag string, data string) *C.cha
 		}
 	}
 
-	err := resourceInstance.DeleteResource(storeFileRepoDir, addr, typ, tag)
+	err := resourceInstance.DeleteResource(storeFileRepoDir, addr, typ, tag, data)
 	if err != nil {
 		return cgoError(err)
 	}
@@ -175,7 +175,7 @@ func getResource(storeFileRepoDir, addr, typ, tag, extraRequest string) *C.char 
 }
 
 //export verifySeeds
-func verifySeeds(seeds string) *C.char {
+func verifySeeds(seeds string, addr string) *C.char {
 	if seeds == "" {
 		return cgoError(errors.New("seeds is empty"))
 	}
@@ -184,8 +184,33 @@ func verifySeeds(seeds string) *C.char {
 		fmt.Printf("confilesystem-go - verifySeeds(): err = %v\n", err)
 		return cgoError(err)
 	}
-	if !kl.Valid() {
+	if !kl.Valid(addr) {
 		return cgoError(errors.New("seeds is invalid"))
+	}
+
+	resMap := make(map[string]interface{})
+	resMap[ResMapKeyOk] = true
+
+	res, err := json.Marshal(resMap)
+	if err != nil {
+		return cgoError(err)
+	}
+
+	return C.CString(string(res))
+}
+
+//export verifyCommands
+func verifyCommands(commands string, addr string) *C.char {
+	if commands == "" {
+		return cgoError(errors.New("commands is empty"))
+	}
+	cl, err := resource.NewCommandLoad(commands)
+	if err != nil {
+		fmt.Printf("confilesystem-go - verifyCommands(): err = %v\n", err)
+		return cgoError(err)
+	}
+	if !cl.Valid(addr) {
+		return cgoError(errors.New("commands is invalid"))
 	}
 
 	resMap := make(map[string]interface{})

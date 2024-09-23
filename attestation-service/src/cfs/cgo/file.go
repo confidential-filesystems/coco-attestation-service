@@ -48,7 +48,7 @@ func (f *File) SetResource(repoDir, addr, typ, tag string, data []byte) error {
 	return err
 }
 
-func (f *File) DeleteResource(repoDir, addr, typ, tag string) error {
+func (f *File) DeleteResource(repoDir, addr, typ, tag string, _ string) error {
 	fmt.Printf("confilesystem-go - File.DeleteResource(): addr = %v, typ = %v, tag = %v, repoDir = %v, f.RepoDir = %v\n",
 		addr, typ, tag, repoDir, f.RepoDir)
 	if repoDir == "" {

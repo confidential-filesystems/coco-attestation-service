@@ -20,7 +20,9 @@ extern "C" {
     pub fn setResource(store_file_repo_dir: GoString, addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
     pub fn deleteResource(store_file_repo_dir: GoString, addr: GoString, typ: GoString, tag: GoString, data: GoString) -> *mut c_char;
     pub fn getResource(store_file_repo_dir: GoString, addr: GoString, typ: GoString, tag: GoString, extra_request: GoString) -> *mut c_char;
-    pub fn verifySeeds(seeds: GoString) -> *mut c_char;
+    pub fn verifySeeds(seeds: GoString, addr: GoString) -> *mut c_char;
+    pub fn verifyCommands(commands: GoString, addr: GoString) -> *mut c_char;
+
 
     // <-> ownership
     pub fn initOwnership(cfg_file: GoString, ctx_timeout_sec: i64) -> *mut c_char;
@@ -387,20 +389,61 @@ impl Cfs {
     pub fn verify_seeds(
         &self,
         seeds: String,
+        addr: String,
     ) -> Result<()> {
-        log::debug!("confilesystem - verify_seeds(): seeds: {:?}", seeds);
+        log::debug!("confilesystem - verify_seeds()");
 
         let seeds_go = GoString {
             p: seeds.as_ptr() as *const c_char,
             n: seeds.len() as isize,
         };
+        let addr_go = GoString {
+            p: addr.as_ptr() as *const c_char,
+            n: addr.len() as isize,
+        };
 
         // Call the function exported by cgo and process
         let res_buf: *mut c_char =
-            unsafe { verifySeeds(seeds_go) };
+            unsafe { verifySeeds(seeds_go, addr_go) };
         let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
         let res = res_str.to_str()?.to_string();
         log::info!("confilesystem - verify_seeds(): res = {:?}", res);
+        if res.starts_with("Error::") {
+            return Err(anyhow!(res));
+        }
+
+        let res_kv: Value = serde_json::from_str(&res)?;
+        let result_boolean = res_kv["ok"]
+            .as_bool()
+            .ok_or_else(|| anyhow!("CFS output must contain \"ok\" boolean value"))?;
+        if !result_boolean {
+            return Err(anyhow!("CFS output result_boolean is false"));
+        }
+        Ok(())
+    }
+
+    pub fn verify_commands(
+        &self,
+        commands: String,
+        addr: String,
+    ) -> Result<()> {
+        log::debug!("confilesystem - verify_commands(): commands: {:?}", commands);
+
+        let commands_go = GoString {
+            p: commands.as_ptr() as *const c_char,
+            n: commands.len() as isize,
+        };
+        let addr_go = GoString {
+            p: addr.as_ptr() as *const c_char,
+            n: addr.len() as isize,
+        };
+
+        // Call the function exported by cgo and process
+        let res_buf: *mut c_char =
+            unsafe { verifyCommands(commands_go, addr_go) };
+        let res_str: &CStr = unsafe { CStr::from_ptr(res_buf) };
+        let res = res_str.to_str()?.to_string();
+        log::info!("confilesystem - verify_commands(): res = {:?}", res);
         if res.starts_with("Error::") {
             return Err(anyhow!(res));
         }
