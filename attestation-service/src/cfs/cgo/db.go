@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/confidential-filesystems/filesystem-ownership/utils"
+	"github.com/confidential-filesystems/filesystem-toolchain/method"
 )
 
 const (
@@ -25,14 +25,14 @@ func (d *DB) SetResource(_, addr, typ, tag string, data []byte) error {
 	fmt.Printf("confilesystem-go - DB.SetResource(): addr = %v, typ = %v, tag = %v\n", addr, typ, tag)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultCtxTimeout)
 	defer cancel()
-	return utils.SetResource(ctx, addr, typ, tag, data)
+	return method.SetResource(ctx, addr, typ, tag, data)
 }
 
 func (d *DB) DeleteResource(_, addr, typ, tag string, extraRequest string) error {
 	fmt.Printf("confilesystem-go - DB.DeleteResource(): addr = %v, typ = %v, tag = %v\n", addr, typ, tag)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultCtxTimeout)
 	defer cancel()
-	return utils.DeleteResource(ctx, addr, typ, tag, extraRequest)
+	return method.DeleteResource(ctx, addr, typ, tag, extraRequest)
 }
 
 func (d *DB) GetResource(_, addr, typ, tag, extraRequest string) ([]byte, error) {
@@ -40,5 +40,5 @@ func (d *DB) GetResource(_, addr, typ, tag, extraRequest string) ([]byte, error)
 		addr, typ, tag, extraRequest)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultCtxTimeout)
 	defer cancel()
-	return utils.ToGetResource(ctx, "", addr, typ, tag, extraRequest)
+	return method.GetResource(ctx, "", addr, typ, tag, extraRequest)
 }

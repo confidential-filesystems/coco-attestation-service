@@ -3,11 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/confidential-filesystems/filesystem-toolchain/method"
 	"os"
 	"path"
 	"path/filepath"
-
-	"github.com/confidential-filesystems/filesystem-ownership/utils"
 )
 
 type File struct {
@@ -67,7 +66,7 @@ func (f *File) GetResource(repoDir, addr, typ, tag, extraRequest string) ([]byte
 		repoDir = f.RepoDir
 	}
 
-	return utils.ToGetResource(context.Background(), repoDir, addr, typ, tag, extraRequest)
+	return method.GetResource(context.Background(), repoDir, addr, typ, tag, extraRequest)
 }
 
 // utils api

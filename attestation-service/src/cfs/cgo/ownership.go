@@ -5,11 +5,11 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/confidential-filesystems/filesystem-toolchain/method"
 	"math/big"
 
-	"github.com/confidential-filesystems/filesystem-ownership/utils"
-	"github.com/confidential-filesystems/filesystem-ownership/vos/v1/request"
-	"github.com/confidential-filesystems/filesystem-ownership/vos/v1/response"
+	"github.com/confidential-filesystems/filesystem-toolchain/vos/v1/request"
+	"github.com/confidential-filesystems/filesystem-toolchain/vos/v1/response"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -26,7 +26,7 @@ func initOwnership(cfgFile string, ctxTimeoutSec int64) *C.char {
 	gCfgFile = cfgFile
 	gCtxTimeoutSec = ctxTimeoutSec
 
-	err := utils.InitOwnerServFunc(cfgFile, ctxTimeoutSec)
+	err := method.InitOwnerServFunc(cfgFile, ctxTimeoutSec)
 	if err != nil {
 		gOwnershipInitErrStub = err
 		return cgoError(err)
@@ -123,7 +123,7 @@ func mintFilesystem(req string) *C.char {
 
 	if gOwnershipInitErrStub != nil {
 		fmt.Printf("mintFilesystem() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
-		err = utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		err = method.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
 		if err != nil {
 			gOwnershipInitErrStub = err
 			return cgoError(err)
@@ -131,7 +131,7 @@ func mintFilesystem(req string) *C.char {
 		gOwnershipInitErrStub = nil
 	}
 
-	err, mintFilesystemResp := utils.MintFs(mintFilesystemReq)
+	mintFilesystemResp, err := method.MintFs(mintFilesystemReq)
 	if err != nil {
 		return cgoError(err)
 	}
@@ -183,7 +183,7 @@ func getFilesystem(name string) *C.char {
 
 	if gOwnershipInitErrStub != nil {
 		fmt.Printf("getFilesystem() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
-		err := utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		err := method.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
 		if err != nil {
 			gOwnershipInitErrStub = err
 			return cgoError(err)
@@ -191,7 +191,7 @@ func getFilesystem(name string) *C.char {
 		gOwnershipInitErrStub = nil
 	}
 
-	err, getFilesystemResp := utils.GetFs(name)
+	getFilesystemResp, err := method.GetFs(name)
 	if err != nil {
 		return cgoError(err)
 	}
@@ -270,7 +270,7 @@ func burnFilesystem(req string) *C.char {
 
 	if gOwnershipInitErrStub != nil {
 		fmt.Printf("burnFilesystem() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
-		err = utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		err = method.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
 		if err != nil {
 			gOwnershipInitErrStub = err
 			return cgoError(err)
@@ -278,7 +278,7 @@ func burnFilesystem(req string) *C.char {
 		gOwnershipInitErrStub = nil
 	}
 
-	err = utils.BurnFs(burnFilesystemReq)
+	err = method.BurnFs(burnFilesystemReq)
 	if err != nil {
 		return cgoError(err)
 	}
@@ -341,7 +341,7 @@ func getAccountMetaTx(addr string) *C.char {
 
 	if gOwnershipInitErrStub != nil {
 		fmt.Printf("getAccountMetaTx() In: but gOwnershipInitErrStub = %v -> reInit", gOwnershipInitErrStub)
-		err := utils.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
+		err := method.InitOwnerServFunc(gCfgFile, gCtxTimeoutSec)
 		if err != nil {
 			gOwnershipInitErrStub = err
 			return cgoError(err)
@@ -349,7 +349,7 @@ func getAccountMetaTx(addr string) *C.char {
 		gOwnershipInitErrStub = nil
 	}
 
-	err, getMetaTxParamsResp := utils.GetAccountMetaTx(addr)
+	getMetaTxParamsResp, err := method.GetAccountMetaTx(addr)
 	if err != nil {
 		return cgoError(err)
 	}
@@ -391,7 +391,7 @@ func toGetConfigureRsp(getConfigureResp *response.GetConfigureResp) (*GetConfigu
 func getWellKnownCfg() *C.char {
 	fmt.Printf("confilesystem-go - getWellKnownCfg(): gOwnershipInitErrStub = %v\n", gOwnershipInitErrStub)
 
-	getWellKnownCfgResp := utils.GetWellKnownCfg()
+	getWellKnownCfgResp := method.GetWellKnownCfg()
 	rsp, err := toGetConfigureRsp(getWellKnownCfgResp)
 	if err != nil {
 		return cgoError(err)
