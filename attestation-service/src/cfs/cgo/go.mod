@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.5
 
 require (
-	github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240924014002-1353a36f14ea
+	github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240924100843-8c9f5d0d474d
 	github.com/ethereum/go-ethereum v1.10.17
 )
 
