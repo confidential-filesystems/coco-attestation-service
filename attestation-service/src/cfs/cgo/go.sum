@@ -105,8 +105,8 @@ github.com/cloudflare/cloudflare-go v0.10.2-0.20190916151808-a80f83b9add9/go.mod
 github.com/cloudflare/cloudflare-go v0.14.0/go.mod h1:EnwdgGMaFOruiPZRFSgn+TsQ3hQ7C/YWzIGLeu5c304=
 github.com/confidential-filesystems/filesystem-contracts/lib v0.0.0-20240729080730-dcaf0b93c7a3 h1:cgX0x9EYkXW0Ot0G6Qw7QslDQSJO3ecM3NP67M9JXoM=
 github.com/confidential-filesystems/filesystem-contracts/lib v0.0.0-20240729080730-dcaf0b93c7a3/go.mod h1:rhqzjZ0qJ/DBt0AgFmJGI5diHDiqm7QbQZxkSuOE9aM=
-github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240924100843-8c9f5d0d474d h1:RDmAVF4kMOjiP+QZ+O4nQclkyDubVFtyVN3srhtA29A=
-github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240924100843-8c9f5d0d474d/go.mod h1:+CNAmdDl36l+s2fAc3oBVvptcK1DE+NC26M+yHtanns=
+github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240925062653-6cd56494af76 h1:m62WH53WodK28H8c+v74uw3FATW0YxB7TH6JbfOHaX0=
+github.com/confidential-filesystems/filesystem-toolchain v0.0.0-20240925062653-6cd56494af76/go.mod h1:+CNAmdDl36l+s2fAc3oBVvptcK1DE+NC26M+yHtanns=
 github.com/consensys/bavard v0.1.8-0.20210406032232-f3452dc9b572/go.mod h1:Bpd0/3mZuaj6Sj+PqrmIquiOKy397AKGThQPaGzNXAQ=
 github.com/consensys/gnark-crypto v0.4.1-0.20210426202927-39ac3d4b3f1f/go.mod h1:815PAHg3wvysy0SyIqanF8gZ0Y1wjk/hrDHD/iT88+Q=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
